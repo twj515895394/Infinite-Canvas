@@ -72,6 +72,21 @@
 - React Flow 与动效库之间的性能边界。
 - Reduced Motion、High Contrast 和 UI 验收规则。
 
+### 1.6 `/api/v2` P0 Contract 与 OpenAPI
+
+[`studio-v2-api-v2-p0-contract-and-openapi-design.md`](./studio-v2-api-v2-p0-contract-and-openapi-design.md)
+
+用于确定：
+
+- Pydantic、OpenAPI、TypeScript 和 Zod 的 Schema 来源关系。
+- HTTP Header、Status、Problem Detail、Cursor Pagination 和幂等规则。
+- Bootstrap、Runtime Capability 和 Project DTO。
+- Canvas Document、Operation、Snapshot 和 Revision 冲突处理。
+- Asset Query、Asset Ingest 和 AssetVersion 摘要。
+- Unified GenerationJob、Attempt、Cancel 和 Retry。
+- Studio Event Envelope、WebSocket、Heartbeat 和 Replay。
+- P0 后端模块结构、持久化最低要求、测试和实施顺序。
+
 ---
 
 ## 2. 当前已确定的核心决策
@@ -91,8 +106,9 @@
 13. 素材演进为 Asset + AssetVersion + Reference。
 14. 结构化成果使用 Artifact + Version + Link。
 15. 实时事件使用 `/ws/v2/events`，支持 sequence 和断线补拉。
-16. Agent Runtime 复用 Claude CLI、Codex CLI、Pi、oh-my-pi 等实现。
-17. Infinite-Canvas 只实现 Agent Gateway、ACP/CLI Adapter、上下文、工具、事件和 Artifact 集成，不实现新的 Agent Harness。
+16. `/api/v2` 使用 Pydantic Response Model 和稳定 OpenAPI，不使用裸顶层 `dict`。
+17. Agent Runtime 复用 Claude CLI、Codex CLI、Pi、oh-my-pi 等实现。
+18. Infinite-Canvas 只实现 Agent Gateway、ACP/CLI Adapter、上下文、工具、事件和 Artifact 集成，不实现新的 Agent Harness。
 
 ---
 
@@ -105,12 +121,12 @@
 | Studio V2 后端 API 总体设计 | 已完成 v1.0 |
 | 页面信息架构与核心流程 | 已完成 v1.0 |
 | UI、交互与动效设计系统 | 已完成 v1.0 |
-| `/api/v2` P0 DTO 与 OpenAPI | 待设计 |
+| `/api/v2` P0 DTO 与 OpenAPI | 已完成 v1.0 |
 | React Flow 节点模型与 Node Registry | 待设计 |
 | Legacy Canvas 数据迁移 | 待设计 |
 | Asset / Artifact 数据模型 | 待设计 |
 | GenerationJob 状态机 | 待设计 |
-| Event Hub 详细协议 | 待设计 |
+| Event Hub 详细协议 | P0 已定义，扩展细节待设计 |
 | Agent Gateway 详细协议 | 待设计 |
 | 实施任务和里程碑 | 待设计 |
 
@@ -120,15 +136,14 @@
 
 建议按以下顺序继续：
 
-1. `/api/v2` P0 DTO 与 OpenAPI 详细定义。
-2. React Flow 节点模型、Node Registry、Handle 和 Inspector 设计。
-3. Legacy Canvas JSON 到 V2 Document 的迁移映射。
-4. Asset、AssetVersion、Artifact 和引用关系数据模型。
-5. GenerationJob 状态机和供应商 Adapter 设计。
-6. Studio Event Envelope、WebSocket 重连和补拉机制。
-7. Agent Gateway、Skill Registry、Session、Task 和 Tool Gateway 设计。
-8. 可交互 UI Prototype 和组件 Storybook。
-9. 分阶段实施任务、验收标准和开发里程碑。
+1. React Flow 节点模型、Node Registry、Handle、Command 和 Inspector 设计。
+2. Legacy Canvas JSON 到 V2 Document 的迁移映射。
+3. Asset、AssetVersion、Artifact 和引用关系数据模型。
+4. GenerationJob 状态机和供应商 Adapter 设计。
+5. Studio Event 的持久化、聚合、限流和重连实现细节。
+6. Agent Gateway、Skill Registry、Session、Task 和 Tool Gateway 设计。
+7. 可交互 UI Prototype 和组件 Storybook。
+8. 分阶段实施任务、验收标准和开发里程碑。
 
 ---
 
@@ -151,7 +166,7 @@
 
 - 总体架构决策修改时，必须记录变更原因和受影响文档。
 - 当前后端新增或删除 API 时，同步更新能力盘点文档。
-- `/api/v2` Contract 修改时，必须同步更新 OpenAPI、前端 Zod Schema 和本目录设计文档。
+- `/api/v2` Contract 修改时，必须同步更新 OpenAPI、前端 TypeScript 类型、关键 Zod Schema 和本目录设计文档。
 - Design Token 和 Motion Token 修改时，必须同步组件 Story 和视觉回归用例。
 - Legacy API 进入废弃状态时，记录替代接口和迁移期限。
 - 供应商专用字段不得直接扩散到 Studio V2 公共 DTO。
