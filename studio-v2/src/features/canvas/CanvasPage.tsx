@@ -1,0 +1,385 @@
+/**
+ * 生成画布页（切片 09/14/17）。
+ * React Flow 集成：studio-node Host、Node Registry、Command/Undo-Redo、
+ * 连接验证、保存/重开闭环、revision 冲突提示。
+ */
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Background,
+  Controls,
+  MiniMap,
+  type Node as RFNode,
+  type Edge as RFEdge,
+  type Connection,
+  type NodeChange,
+  type EdgeChange,
+} from '@xyflow/react'
+import '@xyflow/react/dist/style.css'
+import { Plus, Undo2, Redo2, Trash2, Save, Loader2 } from 'lucide-react'
+import { Button, IconButton } from '@/components/ui/button'
+import { Dialog } from '@/components/ui/dialog'
+import { useEditorStore, type CanvasMeta } from '@/features/canvas/store'
+import { nodeRegistry, type InspectorField } from '@/features/canvas/registry'
+import { registerMvpNodes, nodeTypes, NODE_TYPES } from '@/features/canvas/nodes'
+import type { CanvasNode, CanvasEdge } from '@/features/canvas/ports'
+import { loadCanvas, saveCanvasSnapshot, isRevisionConflict } from '@/features/canvas/persistence'
+import { cn } from '@/core/utils/cn'
+
+registerMvpNodes()
+
+function toRfNode(n: CanvasNode): RFNode {
+  return {
+    id: n.id,
+    type: 'studio-node',
+    position: n.position,
+    data: { nodeType: n.type, config: n.config ?? {} },
+  }
+}
+
+function toRfEdge(e: CanvasEdge): RFEdge {
+  return { id: e.id, source: e.source, sourceHandle: e.sourceHandle, target: e.target, targetHandle: e.targetHandle }
+}
+
+function InspectorPanel() {
+  const selectedId = useEditorStore((s) => s.selection.nodeIds[0])
+  const nodes = useEditorStore((s) => s.nodes)
+  const updateConfig = useEditorStore((s) => s.updateConfig)
+  const node = nodes.find((n) => n.id === selectedId)
+  const def = node ? nodeRegistry.get(node.type) : undefined
+
+  if (!node || !def) {
+    return (
+      <div className="flex h-full items-center justify-center px-4 text-center text-xs text-text-faint">
+        选中节点后在此编辑参数
+      </div>
+    )
+  }
+  const fields: InspectorField[] = def.configSchema
+  if (fields.length === 0) {
+    return <div className="px-4 text-xs text-text-faint">该节点无需配置参数</div>
+  }
+  return (
+    <div className="flex flex-col gap-3 p-3">
+      <div className="text-xs font-medium text-text">{def.label} 参数</div>
+      {fields.map((field) => (
+        <label key={field.key} className="flex flex-col gap-1">
+          <span className="text-[11px] text-text-muted">{field.label}</span>
+          {field.type === 'textarea' ? (
+            <textarea
+              value={String(node.config[field.key] ?? '')}
+              placeholder={field.placeholder}
+              onChange={(e) => updateConfig(node.id, { [field.key]: e.target.value })}
+              rows={3}
+              className="rounded-md border border-border bg-bg px-2 py-1.5 text-xs text-text outline-none focus:border-accent"
+            />
+          ) : (
+            <input
+              value={String(node.config[field.key] ?? '')}
+              placeholder={field.placeholder}
+              onChange={(e) => updateConfig(node.id, { [field.key]: e.target.value })}
+              className="h-8 rounded-md border border-border bg-bg px-2 text-xs text-text outline-none focus:border-accent"
+            />
+          )}
+        </label>
+      ))}
+    </div>
+  )
+}
+
+function CanvasWorkspace() {
+  const { canvasId } = useParams<{ projectId: string; canvasId: string }>()
+  const navigate = useNavigate()
+  const nodes = useEditorStore((s) => s.nodes)
+  const edges = useEditorStore((s) => s.edges)
+  const dirty = useEditorStore((s) => s.dirty)
+  const history = useEditorStore((s) => s.history)
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [conflict, setConflict] = useState(false)
+  const [addMenuOpen, setAddMenuOpen] = useState(false)
+
+  const store = useEditorStore
+
+  /* 加载画布 */
+  useEffect(() => {
+    if (!canvasId) return
+    setLoading(true)
+    setLoadError(null)
+    loadCanvas(canvasId)
+      .then((loaded) => {
+        const meta: CanvasMeta = { id: loaded.id, projectId: loaded.projectId, title: loaded.title, revision: loaded.revision }
+        store.getState().loadCanvas(meta, {
+          nodes: loaded.nodes,
+          edges: loaded.edges,
+          viewport: loaded.viewport,
+        })
+        setLoading(false)
+      })
+      .catch((err) => {
+        setLoadError(String(err))
+        setLoading(false)
+      })
+    return () => store.getState().reset()
+  }, [canvasId, store])
+
+  /* debounce 保存 */
+  useEffect(() => {
+    if (!dirty || !canvasId) return
+    const timer = setTimeout(() => {
+      const state = store.getState()
+      if (!state.meta) return
+      saveCanvasSnapshot(canvasId, {
+        nodes: state.nodes,
+        edges: state.edges,
+        viewport: state.viewport,
+      })
+        .then((revision) => {
+          const meta = store.getState().meta
+          if (meta) {
+            store.setState({ meta: { ...meta, revision }, dirty: false })
+          }
+        })
+        .catch((err) => {
+          if (isRevisionConflict(err)) {
+            setConflict(true)
+          } else {
+            console.error('save failed', err)
+          }
+        })
+    }, 800)
+    return () => clearTimeout(timer)
+  }, [dirty, canvasId, store])
+
+  const onNodesChange = useCallback(
+    (changes: NodeChange[]) => {
+      const s = store.getState()
+      for (const c of changes) {
+        if (c.type === 'position' && c.position) {
+          s.setNodePosition(c.id, c.position) // 拖拽中直接应用，dragStop 时合并为单命令
+        } else if (c.type === 'remove') {
+          s.removeNode(c.id)
+        }
+      }
+      if (changes.length > 0) s.setDirty(true)
+    },
+    [store],
+  )
+
+  const onNodeDragStart = useCallback(
+    (_: unknown, node: RFNode) => {
+      store.getState().recordDragStart(node.id, node.position)
+    },
+    [store],
+  )
+
+  const onNodeDragStop = useCallback(
+    (_: unknown, node: RFNode) => {
+      store.getState().commitDrag(node.id)
+    },
+    [store],
+  )
+
+  const onEdgesChange = useCallback(
+    (changes: EdgeChange[]) => {
+      const s = store.getState()
+      for (const c of changes) {
+        if (c.type === 'remove') {
+          s.removeEdge(c.id)
+        }
+      }
+      if (changes.length > 0) s.setDirty(true)
+    },
+    [store],
+  )
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      if (!connection.source || !connection.target) return
+      const edge: CanvasEdge = {
+        id: `e_${crypto.randomUUID()}`,
+        source: connection.source,
+        sourceHandle: connection.sourceHandle ?? undefined,
+        target: connection.target,
+        targetHandle: connection.targetHandle ?? undefined,
+      }
+      const result = store.getState().addEdge(edge)
+      if (!result.ok) {
+        console.warn('connection rejected:', result.reason)
+      }
+    },
+    [store],
+  )
+
+  const onSelectionChange = useCallback(
+    (params: { nodes: RFNode[]; edges: RFEdge[] }) => {
+      store.getState().setSelection(
+        params.nodes.map((n) => n.id),
+        params.edges.map((e) => e.id),
+      )
+    },
+    [store],
+  )
+
+  /* 键盘快捷键：Ctrl+Z / Ctrl+Shift+Z / Delete */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const s = store.getState()
+      const target = e.target as HTMLElement
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) s.redo()
+        else s.undo()
+      } else if (e.key === 'Delete' && s.selection.nodeIds.length > 0) {
+        e.preventDefault()
+        for (const id of [...s.selection.nodeIds]) s.removeNode(id)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [store])
+
+  const addNodeAt = (type: string) => {
+    const id = store.getState().addNode(type, {
+      x: 120 + (nodes.length % 4) * 40,
+      y: 100 + (nodes.length % 3) * 60,
+    })
+    setAddMenuOpen(false)
+    return id
+  }
+
+  const rfNodes = useMemo(() => nodes.map(toRfNode), [nodes])
+  const rfEdges = useMemo(() => edges.map(toRfEdge), [edges])
+
+  if (loading) {
+    return (
+      <div className="flex h-full items-center justify-center gap-2 text-sm text-text-muted">
+        <Loader2 size={16} className="animate-spin" aria-hidden /> 加载画布…
+      </div>
+    )
+  }
+  if (loadError) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3">
+        <p className="text-sm text-danger">画布加载失败：{loadError}</p>
+        <Button variant="ghost" size="sm" onClick={() => navigate('/projects')}>
+          返回项目
+        </Button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative h-full">
+      <ReactFlow
+        nodes={rfNodes}
+        edges={rfEdges}
+        nodeTypes={nodeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDragStop={onNodeDragStop}
+        onSelectionChange={onSelectionChange}
+        fitView
+        minZoom={0.2}
+        maxZoom={2.5}
+        proOptions={{ hideAttribution: true }}
+        className="bg-bg"
+      >
+        <Background gap={20} size={1} color="#2a3242" />
+        <Controls />
+        <MiniMap pannable zoomable className="!bg-surface-raised" maskColor="rgba(13,15,20,0.7)" />
+      </ReactFlow>
+
+      {/* 顶部工具条 */}
+      <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-border bg-surface-raised/90 p-1 shadow-lg backdrop-blur">
+        <IconButton label="撤销" size="sm" disabled={!history.canUndo} onClick={() => store.getState().undo()}>
+          <Undo2 size={15} aria-hidden />
+        </IconButton>
+        <IconButton label="重做" size="sm" disabled={!history.canRedo} onClick={() => store.getState().redo()}>
+          <Redo2 size={15} aria-hidden />
+        </IconButton>
+        <div className="mx-1 h-5 w-px bg-border" />
+        <div className="relative">
+          <IconButton label="添加节点" size="sm" onClick={() => setAddMenuOpen((v) => !v)}>
+            <Plus size={15} aria-hidden />
+          </IconButton>
+          {addMenuOpen && (
+            <div className="absolute left-0 top-9 z-20 w-40 rounded-lg border border-border bg-surface-raised p-1 shadow-xl">
+              {NODE_TYPES.map((t) => {
+                const def = nodeRegistry.get(t)
+                if (!def) return null
+                return (
+                  <button
+                    key={t}
+                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs text-text hover:bg-surface"
+                    onClick={() => addNodeAt(t)}
+                  >
+                    {def.label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+        <IconButton
+          label="删除选中"
+          size="sm"
+          disabled={store.getState().selection.nodeIds.length === 0}
+          onClick={() => {
+            const s = store.getState()
+            for (const id of [...s.selection.nodeIds]) s.removeNode(id)
+          }}
+        >
+          <Trash2 size={15} aria-hidden />
+        </IconButton>
+        <div className="mx-1 h-5 w-px bg-border" />
+        <div className="flex items-center gap-1.5 px-2">
+          <Save size={13} className={dirty ? 'text-warning' : 'text-text-faint'} aria-hidden />
+          <span className={cn('text-[11px]', dirty ? 'text-warning' : 'text-text-faint')}>
+            {dirty ? '未保存' : '已保存'}
+          </span>
+        </div>
+      </div>
+
+      {/* 右侧 Inspector 浮层 */}
+      <div className="absolute right-3 top-3 z-10 flex max-h-[calc(100%-6rem)] w-[340px] flex-col overflow-auto rounded-lg border border-border bg-surface-raised/95 shadow-xl backdrop-blur">
+        <div className="border-b border-border px-3 py-2 text-xs font-medium text-text">Inspector</div>
+        <InspectorPanel />
+      </div>
+
+      {/* revision 冲突提示 */}
+      <Dialog open={conflict} onClose={() => setConflict(false)} title="画布已被修改">
+        <div className="flex flex-col gap-4">
+          <p className="text-sm text-text-muted">
+            画布在其他会话中被更新（revision 冲突）。重新加载以获取最新内容。
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => {
+                setConflict(false)
+                window.location.reload()
+              }}
+            >
+              重新加载
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    </div>
+  )
+}
+
+export default function CanvasPage() {
+  return (
+    <ReactFlowProvider>
+      <CanvasWorkspace />
+    </ReactFlowProvider>
+  )
+}

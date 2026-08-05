@@ -4,7 +4,8 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from '@/app/AppShell'
 import ProjectsPage from '@/features/projects/ProjectsPage'
-import { ProjectDetailPage, CanvasPage, AssetsPage, AgentsPage, SettingsPage } from '@/routes/pages'
+import CanvasPage from '@/features/canvas/CanvasPage'
+import { ProjectDetailPage, AssetsPage, AgentsPage, SettingsPage } from '@/routes/pages'
 
 export default function App() {
   return (
