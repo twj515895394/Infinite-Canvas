@@ -50,6 +50,94 @@ BASE_SCHEMA = [
         UNIQUE (canvas_id, operation_id)
     )
     """,
+    # Asset V2（B5）：逻辑资源元数据，current_version_id 指向 asset_versions
+    """
+    CREATE TABLE IF NOT EXISTS assets (
+        id TEXT PRIMARY KEY,
+        project_id TEXT,
+        kind TEXT NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        source_type TEXT NOT NULL,
+        lifecycle_status TEXT NOT NULL DEFAULT 'active',
+        review_status TEXT NOT NULL DEFAULT 'unreviewed',
+        current_version_id TEXT,
+        revision INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        trashed_at INTEGER,
+        deleted_at INTEGER
+    )
+    """,
+    # Asset V2：不可变版本（B5）。内容字段创建后禁止修改（代码层约束，无更新端点）
+    """
+    CREATE TABLE IF NOT EXISTS asset_versions (
+        id TEXT PRIMARY KEY,
+        asset_id TEXT NOT NULL,
+        version_no INTEGER NOT NULL,
+        file_path TEXT NOT NULL,
+        content_url TEXT NOT NULL,
+        preview_url TEXT,
+        mime_type TEXT NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        width INTEGER,
+        height INTEGER,
+        duration_ms INTEGER,
+        checksum TEXT NOT NULL DEFAULT '',
+        source_metadata_json TEXT NOT NULL DEFAULT '{}',
+        derivation_type TEXT NOT NULL DEFAULT 'original',
+        parent_version_id TEXT,
+        created_at INTEGER NOT NULL,
+        UNIQUE (asset_id, version_no),
+        FOREIGN KEY (asset_id) REFERENCES assets(id)
+    )
+    """,
+    # Asset V2：标签（MVP 全局标签，不区分项目）
+    """
+    CREATE TABLE IF NOT EXISTS asset_tags (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL UNIQUE,
+        normalized_name TEXT NOT NULL UNIQUE,
+        created_at INTEGER NOT NULL
+    )
+    """,
+    # Asset V2：资产-标签关联
+    """
+    CREATE TABLE IF NOT EXISTS asset_tag_links (
+        asset_id TEXT NOT NULL,
+        tag_id TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        PRIMARY KEY (asset_id, tag_id),
+        FOREIGN KEY (asset_id) REFERENCES assets(id),
+        FOREIGN KEY (tag_id) REFERENCES asset_tags(id)
+    )
+    """,
+    # Asset V2：集合（取代旧 Library/Category 嵌套 JSON）
+    """
+    CREATE TABLE IF NOT EXISTS asset_collections (
+        id TEXT PRIMARY KEY,
+        project_id TEXT,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL DEFAULT '',
+        kind TEXT NOT NULL DEFAULT 'manual',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        revision INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+    )
+    """,
+    # Asset V2：集合成员
+    """
+    CREATE TABLE IF NOT EXISTS asset_collection_members (
+        collection_id TEXT NOT NULL,
+        asset_id TEXT NOT NULL,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        added_at INTEGER NOT NULL,
+        PRIMARY KEY (collection_id, asset_id),
+        FOREIGN KEY (collection_id) REFERENCES asset_collections(id),
+        FOREIGN KEY (asset_id) REFERENCES assets(id)
+    )
+    """,
 ]
 
 
