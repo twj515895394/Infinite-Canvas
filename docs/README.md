@@ -139,6 +139,23 @@
 - `/api/v2` Agent、Skill、Runtime、Session、Task、Permission、Tool 和 Context 接口。
 - P0、P1、P2 实施边界与首批内置 Skill。
 
+### 1.10 Agent / Skill P0 Contract、SQLite 与 Runtime Adapter
+
+[`studio-v2-agent-skill-p0-contract-and-sqlite-design.md`](./studio-v2-agent-skill-p0-contract-and-sqlite-design.md)
+
+用于确定：
+
+- `data/studio-v2/studio.db`、WAL、短事务、Repository 和 Alembic 基线。
+- Runtime、Agent、Skill、Binding、Session、Task、Run、Step、Message、Context、Tool、Permission、Idempotency 和 Event Outbox 表结构。
+- Skill Package 文件系统与数据库索引的存储边界。
+- 带类型前缀的公共 ID、时间、JSON 和 Revision 规则。
+- Runtime、Agent、Skill、Session、Context、Task、Run 和 Permission 的 Pydantic DTO。
+- Agent P0 `/api/v2` 字段级接口、状态码和错误码。
+- Normalized Runtime Event 与 Runtime Adapter 内部协议。
+- Tool Bridge、Task Dispatcher、Worker Lease、Heartbeat 和重启恢复。
+- Task 正常执行、等待权限、等待输入、取消、重试和服务重启时序。
+- Agent P0 实施顺序、测试要求和验收标准。
+
 ---
 
 ## 2. 当前已确定的核心决策
@@ -173,6 +190,12 @@
 28. 所有 Agent 执行必须 Task / Run 化，并固定 Agent Revision、Skill Version 和 Context Snapshot。
 29. 所有副作用操作必须经过 Tool Gateway 或明确 Runtime 权限策略。
 30. 结构化 Agent 输出优先 Artifact 化，再由用户确认写回项目领域对象。
+31. Agent P0 运行状态使用 SQLite 持久化，不使用零散 JSON 文件作为权威状态。
+32. Skill Package 原始内容保存在文件系统，数据库保存身份、来源、版本、Checksum、验证结果和绑定。
+33. Agent 状态变化与 Studio Event Outbox 在同一事务提交，避免状态已改变但事件丢失。
+34. Run 使用 Lease 与 Heartbeat，服务重启后可识别并恢复或标记 Interrupted。
+35. Runtime Capability 必须真实探测；不支持 Tool Calling、Permission 或 Session Resume 时必须明确降级，不能伪造能力。
+36. Task、Tool Call 和其他副作用请求必须具备幂等边界，重试不能重复创建领域数据或付费任务。
 
 ---
 
@@ -189,9 +212,10 @@
 | `/api/v2` P0 DTO 与 OpenAPI | 已完成 v1.0 |
 | React Flow 节点模型与 Node Registry | 已完成 v1.0 |
 | Agent、Skill、Runtime 与管理系统 | 已完成 v1.0 |
+| Agent / Skill P0 Contract 与 SQLite | 已完成 v1.0 |
 | Asset / Artifact 数据模型 | 待设计 |
 | GenerationJob 状态机 | 节点绑定已定义，完整状态机和 Adapter 待设计 |
-| Event Hub 详细协议 | P0 已定义，扩展细节待设计 |
+| Event Hub 详细协议 | P0 已定义，Outbox 表已确定，Publisher 与聚合细节待设计 |
 | AI 影视创作领域对象 | 总体模型已定义，字段与流程待细化 |
 | Legacy Canvas 可选导入 | 节点级映射已定义，导入报告和回滚后续设计 |
 | 实施任务和里程碑 | 待设计 |
@@ -202,12 +226,12 @@
 
 按当前产品优先级继续：
 
-1. Agent/Skill P0 DTO、数据库表、事件和 Runtime Adapter 逐字段 Contract。
-2. Asset、AssetVersion、Artifact、ArtifactVersion 和引用关系数据模型。
-3. GenerationJob 状态机、Attempt、Executor 和供应商 Adapter 设计。
-4. Studio Event 的持久化、聚合、限流和重连实现细节。
-5. Project Bible、Script、Character、Scene、Shot 和 Storyboard 详细领域设计。
-6. 可交互 UI Prototype、Agent Center 原型、组件 Storybook 和 React Flow 性能原型。
+1. Asset、AssetVersion、Artifact、ArtifactVersion 和统一 Resource Reference 数据模型。
+2. GenerationJob 状态机、Attempt、Executor 和供应商 Adapter 设计。
+3. Studio Event Outbox Publisher、持久化、聚合、限流和重连实现细节。
+4. Project Bible、Script、Character、Scene、Shot 和 Storyboard 详细领域设计与 Tool Contract。
+5. Agent Center、Agent Dock、Permission Card 和 Artifact Preview 可交互原型。
+6. 首批内置 Skill 的 Manifest、Schema、Prompt、测试与质量规则。
 7. 分阶段实施任务、依赖关系、验收标准和开发里程碑。
 8. Legacy Canvas 可选导入、迁移报告和失败回滚。
 
@@ -236,6 +260,7 @@ Accepted ADR
 - 旧 `/api/*` 修改时必须进行兼容性评估。
 - `/api/v2` Contract 修改时，必须同步更新 OpenAPI、前端 TypeScript 类型、关键 Zod Schema 和本目录设计文档。
 - Agent Profile、Skill、Runtime、Tool 或 Permission Contract 修改时，必须同步管理 UI、事件和审计用例。
+- Agent 数据表修改时必须通过 Migration，不得在启动代码中静默重建数据库。
 - Skill Manifest 修改时必须同步版本规则、Validator 和测试样例。
 - Node Definition 修改时，必须同步 Definition Version、迁移函数、Inspector、Port 和测试。
 - 新增 Provider 或 Executor 时，优先扩展 Adapter，不得默认增加新的顶层 Node Kind。
