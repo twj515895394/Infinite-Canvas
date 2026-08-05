@@ -364,16 +364,15 @@ def ingest_bytes(
         ext = ".bin"
 
     stored_name = f"ast_{uuid.uuid4().hex[:12]}{ext}"
-    os.makedirs(input_dir(), exist_ok=True)
-    path = os.path.join(input_dir(), stored_name)
-    with open(path, "wb") as f:
-        f.write(content)
-    checksum = hashlib.sha256(content).hexdigest()
-    width, height, duration_ms = media_meta(path, kind)
-    mime = content_type or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
-
     conn = db.get_connection()
     try:
+        os.makedirs(input_dir(), exist_ok=True)
+        path = os.path.join(input_dir(), stored_name)
+        with open(path, "wb") as f:
+            f.write(content)
+        checksum = hashlib.sha256(content).hexdigest()
+        width, height, duration_ms = media_meta(path, kind)
+        mime = content_type or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
         now = int(time.time() * 1000)
         asset_id = db.new_id("ast")
         version_id = db.new_id("avr")

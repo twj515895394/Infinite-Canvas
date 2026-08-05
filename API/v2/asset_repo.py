@@ -85,14 +85,17 @@ def replace_tags(conn, asset_id: str, tags: Optional[List[str]]) -> None:
         )
 
 
-def reference_count(asset_id: str) -> int:
-    """P0 最小引用统计：扫描画布快照中引用该资产的节点（Agent 引用表后续阶段补充）。"""
+def reference_counts(ids: List[str]) -> Dict[str, int]:
+    """批量引用统计：单次扫描画布快照，统计每个资产被节点引用的次数（避免逐行全表扫描）。"""
+    if not ids:
+        return {}
+    id_set = set(ids)
+    counts = {i: 0 for i in ids}
     conn = db.get_connection()
     try:
         rows = conn.execute("SELECT snapshot_json FROM canvases").fetchall()
     except Exception:
-        return 0
-    count = 0
+        return counts
     for row in rows:
         try:
             state = json.loads(row["snapshot_json"])
@@ -101,13 +104,16 @@ def reference_count(asset_id: str) -> int:
         for node in state.get("nodes") or []:
             data = node.get("data") or {}
             domain = node.get("domain_ref") or {}
-            if (
-                isinstance(domain, dict) and domain.get("id") == asset_id
-                or data.get("asset_id") == asset_id
-                or data.get("asset_version_id") == asset_id
-            ):
-                count += 1
-    return count
+            ref_id = None
+            if isinstance(domain, dict) and domain.get("id") in id_set:
+                ref_id = domain.get("id")
+            elif data.get("asset_id") in id_set:
+                ref_id = data.get("asset_id")
+            elif data.get("asset_version_id") in id_set:
+                ref_id = data.get("asset_version_id")
+            if ref_id:
+                counts[ref_id] += 1
+    return counts
 
 
 def find_hard_references(asset_id: str) -> List[Dict[str, Any]]:
@@ -187,6 +193,7 @@ def asset_summaries(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             versions[row["id"]] = version_row(dict(row))
 
     items: List[Dict[str, Any]] = []
+    counts = reference_counts(ids)
     for row in rows:
         cur = versions.get(row["current_version_id"])
         items.append(
@@ -202,7 +209,7 @@ def asset_summaries(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 "current_version": cur,
                 "tags": tags.get(row["id"], []),
                 "collection_ids": collections.get(row["id"], []),
-                "reference_count": reference_count(row["id"]),
+                "reference_count": counts.get(row["id"], 0),
                 "created_at": row["created_at"],
                 "updated_at": row["updated_at"],
                 "revision": row["revision"],

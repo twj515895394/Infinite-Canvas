@@ -4,20 +4,16 @@
 成员通过 asset_collection_members 关联；smart/system kind 第一版仅预留字段。
 """
 
-import time
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from API.v2 import db
+from API.v2.asset_repo import now_ms
 from API.v2.problems import ErrorCode, V2Error
 
 router = APIRouter()
-
-
-def _now_ms() -> int:
-    return int(time.time() * 1000)
 
 
 def _fetch(collection_id: str) -> Optional[Dict[str, Any]]:
@@ -90,7 +86,7 @@ def list_collections_v2() -> Dict:
 @router.post("/asset-collections")
 def create_collection_v2(payload: CollectionCreate) -> Dict:
     collection_id = db.new_id("col")
-    now = _now_ms()
+    now = now_ms()
     conn = db.get_connection()
     conn.execute(
         "INSERT INTO asset_collections (id, project_id, name, description, kind, sort_order, revision, created_at, updated_at) "
@@ -120,7 +116,7 @@ def patch_collection_v2(collection_id: str, payload: CollectionPatch) -> Dict:
         params.append(payload.sort_order)
     updates.append("updated_at = ?")
     updates.append("revision = revision + 1")
-    params.append(_now_ms())
+    params.append(now_ms())
     params.append(collection_id)
     conn = db.get_connection()
     conn.execute(f"UPDATE asset_collections SET {', '.join(updates)} WHERE id = ?", params)
@@ -142,7 +138,7 @@ def delete_collection_v2(collection_id: str) -> Dict:
 def add_collection_members_v2(collection_id: str, payload: MembersAdd) -> Dict:
     _require(collection_id)
     conn = db.get_connection()
-    now = _now_ms()
+    now = now_ms()
     added = 0
     for asset_id in payload.asset_ids:
         exists = conn.execute("SELECT 1 FROM assets WHERE id = ?", (asset_id,)).fetchone()
@@ -171,6 +167,6 @@ def remove_collection_member_v2(collection_id: str, asset_id: str) -> Dict:
         "DELETE FROM asset_collection_members WHERE collection_id = ? AND asset_id = ?",
         (collection_id, asset_id),
     )
-    conn.execute("UPDATE asset_collections SET updated_at = ?, revision = revision + 1 WHERE id = ?", (_now_ms(), collection_id))
+    conn.execute("UPDATE asset_collections SET updated_at = ?, revision = revision + 1 WHERE id = ?", (now_ms(), collection_id))
     conn.commit()
     return {"collection": _serialize(_require(collection_id)), "removed": cursor.rowcount}

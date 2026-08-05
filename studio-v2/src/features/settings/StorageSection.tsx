@@ -19,7 +19,8 @@ export function StorageSection() {
   const saveDir = async (key: string) => {
     const value = drafts[key]
     if (!value || value.trim() === '') return
-    await update.mutateAsync({ [key]: value.trim() })
+    // 一次提交全部目录（后端为全量重建语义，缺 key 回落默认值）；合并当前值避免覆盖其他已配置目录
+    await update.mutateAsync({ ...dirs, [key]: value.trim() })
     setDrafts((d) => {
       const next = { ...d }
       delete next[key] // 保存成功后回退到服务端值（不残留空 draft 遮蔽 dirs）

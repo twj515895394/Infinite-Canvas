@@ -76,15 +76,8 @@ def _parse_tags(raw: str) -> List[str]:
 
 def _add_to_collection(collection_id: str, asset_id: str) -> None:
     """加入集合（幂等）。集合不存在抛 RESOURCE_NOT_FOUND。"""
+    _require_collection(collection_id)
     conn = db.get_connection()
-    exists = conn.execute("SELECT 1 FROM asset_collections WHERE id = ?", (collection_id,)).fetchone()
-    if not exists:
-        raise V2Error(
-            code=ErrorCode.RESOURCE_NOT_FOUND,
-            status=404,
-            title="Collection not found",
-            detail=f"集合 {collection_id} 不存在",
-        )
     conn.execute(
         "INSERT OR IGNORE INTO asset_collection_members (collection_id, asset_id, sort_order, added_at) VALUES (?, ?, 0, ?)",
         (collection_id, asset_id, now_ms()),
@@ -131,11 +124,16 @@ def list_assets_v2(
             field_errors={"kind": f"must be one of {sorted(_KNOWN_KINDS)}"},
         )
 
-    where = ["a.lifecycle_status != 'trashed'"]
+    where = []
     params: List[Any] = []
-    if status:
+    # 基础过滤按 status 分支组装：trashed 列出回收站；active/archived 精确匹配；默认隐藏回收站
+    if status == "trashed":
+        where.append("a.lifecycle_status = 'trashed'")
+    elif status in ("active", "archived"):
         where.append("a.lifecycle_status = ?")
         params.append(status)
+    else:
+        where.append("a.lifecycle_status != 'trashed'")
     if project_id:
         where.append("a.project_id = ?")
         params.append(project_id)
@@ -179,6 +177,9 @@ def list_assets_v2(
 @router.post("/assets/ingest")
 def ingest_assets_v2(payload: AssetIngestRequest) -> Dict:
     """JSON 导入（remote_url / local_file / shared_folder_file），按源独立成功或失败。"""
+    # fail-fast：collection 不存在时整批拒绝，避免资产已落库但响应 failed
+    if payload.collection_id:
+        _require_collection(payload.collection_id)
     results: List[Dict[str, Any]] = []
     assets: List[Dict[str, Any]] = []
     for index, src in enumerate(payload.sources):
@@ -219,24 +220,43 @@ def ingest_upload_v2(
     collection_id: str = Form(""),
     kind: str = Form(""),
 ) -> Dict:
-    """multipart 上传（对齐旧 /api/ai/upload 形态），同步创建 Asset + v1。"""
+    """multipart 上传（对齐旧 /api/ai/upload 形态），按文件独立成败，成功同步创建 Asset + v1。"""
+    if collection_id:
+        _require_collection(collection_id)
     assets: List[Dict[str, Any]] = []
     for file in files:
-        asset = ingest_bytes(
-            content=file.file.read(),
-            filename=file.filename or "untitled",
-            content_type=file.content_type,
-            project_id=project_id or None,
-            name=name or None,
-            tags=_parse_tags(tags),
-            source_type="upload",
-            source_metadata={"original_filename": file.filename},
-            kind=kind or None,
-        )
-        if collection_id:
-            _add_to_collection(collection_id, asset["id"])
-        assets.append(asset)
+        try:
+            asset = ingest_bytes(
+                content=file.file.read(),
+                filename=file.filename or "untitled",
+                content_type=file.content_type,
+                project_id=project_id or None,
+                name=name or None,
+                tags=_parse_tags(tags),
+                source_type="upload",
+                source_metadata={"original_filename": file.filename},
+                kind=kind or None,
+            )
+            if collection_id:
+                _add_to_collection(collection_id, asset["id"])
+            assets.append(asset)
+        except V2Error as exc:
+            # 与 JSON 端点一致的按文件独立成败语义：失败项带 error，不影响其余文件
+            assets.append({"error": {"code": exc.code, "title": exc.title, "detail": exc.detail}})
     return {"assets": assets}
+
+
+def _require_collection(collection_id: str) -> None:
+    """集合必须存在（404 RESOURCE_NOT_FOUND），供 ingest fail-fast 使用。"""
+    conn = db.get_connection()
+    exists = conn.execute("SELECT 1 FROM asset_collections WHERE id = ?", (collection_id,)).fetchone()
+    if not exists:
+        raise V2Error(
+            code=ErrorCode.RESOURCE_NOT_FOUND,
+            status=404,
+            title="Collection not found",
+            detail=f"集合 {collection_id} 不存在",
+        )
 
 
 @router.get("/assets/{asset_id}")
@@ -251,6 +271,15 @@ def patch_asset_v2(asset_id: str, payload: AssetPatchRequest) -> Dict:
     fields = payload.model_fields_set
     if not fields:
         return {"asset": asset_detail(asset_id)}
+    # name 不允许置 null（DB NOT NULL；与 P0 Contract name min_length=1 一致）
+    if "name" in fields and payload.name is None:
+        raise V2Error(
+            code=ErrorCode.VALIDATION_FAILED,
+            status=422,
+            title="Invalid name",
+            detail="name 不能为 null",
+            field_errors={"name": "must not be null"},
+        )
 
     now = now_ms()
     conn = db.get_connection()
@@ -294,6 +323,13 @@ def delete_asset_v2(asset_id: str, purge: bool = False) -> Dict:
                 detail=f"资产被 {len(refs)} 个画布节点引用，无法永久删除",
                 context={"references": refs},
             )
+        # 先收集版本物理文件（相对 input_dir），DB 删除成功后清理磁盘（失败仅记录，不影响事务）
+        version_files = [
+            r[0]
+            for r in conn.execute(
+                "SELECT file_path FROM asset_versions WHERE asset_id = ?", (asset_id,)
+            ).fetchall()
+        ]
         conn.execute(
             "UPDATE assets SET lifecycle_status = 'purged', deleted_at = ?, updated_at = ? WHERE id = ?",
             (now, now, asset_id),
@@ -302,6 +338,13 @@ def delete_asset_v2(asset_id: str, purge: bool = False) -> Dict:
         conn.execute("DELETE FROM asset_collection_members WHERE asset_id = ?", (asset_id,))
         conn.execute("DELETE FROM asset_versions WHERE asset_id = ?", (asset_id,))
         conn.commit()
+        for rel in version_files:
+            try:
+                path = os.path.join(input_dir(), rel)
+                if os.path.isfile(path):
+                    os.remove(path)
+            except OSError:
+                pass  # 文件清理失败不阻断 purge（孤儿文件由后续 GC 兜底）
         return {"asset": {"id": asset_id, "lifecycle_status": "purged"}}
     conn.execute(
         "UPDATE assets SET lifecycle_status = 'trashed', trashed_at = ?, updated_at = ?, revision = revision + 1 WHERE id = ?",
@@ -376,22 +419,23 @@ def append_asset_version_v2(
     kind = asset["kind"]
     ext = os.path.splitext(file.filename or "")[1].lower() or ".bin"
     stored_name = f"ast_{uuid.uuid4().hex[:12]}{ext}"
-    os.makedirs(input_dir(), exist_ok=True)
-    path = os.path.join(input_dir(), stored_name)
-    with open(path, "wb") as f:
-        f.write(content)
-    checksum = hashlib.sha256(content).hexdigest()
-    width, height, duration_ms = media_meta(path, kind)
-
-    mime = file.content_type or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
-    now = now_ms()
-    max_no = conn.execute(
-        "SELECT COALESCE(MAX(version_no), 0) FROM asset_versions WHERE asset_id = ?", (asset_id,)
-    ).fetchone()[0]
-    version_no = max_no + 1
-    version_id = db.new_id("avr")
-    url = content_url(stored_name, input_dir())
+    conn = db.get_connection()
     try:
+        os.makedirs(input_dir(), exist_ok=True)
+        path = os.path.join(input_dir(), stored_name)
+        with open(path, "wb") as f:
+            f.write(content)
+        checksum = hashlib.sha256(content).hexdigest()
+        width, height, duration_ms = media_meta(path, kind)
+
+        mime = file.content_type or mimetypes.guess_type(stored_name)[0] or "application/octet-stream"
+        now = now_ms()
+        max_no = conn.execute(
+            "SELECT COALESCE(MAX(version_no), 0) FROM asset_versions WHERE asset_id = ?", (asset_id,)
+        ).fetchone()[0]
+        version_no = max_no + 1
+        version_id = db.new_id("avr")
+        url = content_url(stored_name, input_dir())
         conn.execute(
             "INSERT INTO asset_versions (id, asset_id, version_no, file_path, content_url, preview_url, mime_type, "
             "size_bytes, width, height, duration_ms, checksum, source_metadata_json, derivation_type, parent_version_id, created_at) "

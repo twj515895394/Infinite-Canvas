@@ -90,6 +90,7 @@ export function uploadFiles(
 
   const promise = new Promise<UploadedFile[]>((resolve, reject) => {
     xhr.open('POST', UPLOAD_ENDPOINT)
+    xhr.timeout = 30_000 // 与 core apiFetch 超时对齐（TIMEOUT 分支可触发）
     xhr.responseType = 'json'
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {

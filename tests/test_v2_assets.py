@@ -211,6 +211,9 @@ def test_trash_hides_and_restore_recovers(client):
     # 默认列表隐藏
     ids = [a["id"] for a in client.get("/api/v2/assets").json()["items"]]
     assert asset_id not in ids
+    # 回收站可枚举：status=trashed 列出
+    trashed_ids = [a["id"] for a in client.get("/api/v2/assets", params={"status": "trashed"}).json()["items"]]
+    assert asset_id in trashed_ids
     # 详情仍可解析（引用不破坏）
     detail = client.get(f"/api/v2/assets/{asset_id}").json()["asset"]
     assert detail["lifecycle_status"] == "trashed"
@@ -223,13 +226,40 @@ def test_trash_hides_and_restore_recovers(client):
     assert asset_id in ids
 
 
-def test_purge_without_reference_deletes(client):
-    """无引用的资产 purge 后记录删除、列表不可见。"""
+def test_purge_without_reference_deletes(client, tmp_path):
+    """无引用的资产 purge 后记录删除、列表不可见、物理文件清理。"""
     resp = client.post("/api/v2/assets/ingest/upload", files={"files": ("a.png", _png_bytes(), "image/png")})
     asset_id = resp.json()["assets"][0]["id"]
+    content_url_value = resp.json()["assets"][0]["current_version"]["content_url"]
+    stored_name = content_url_value.rsplit("/", 1)[-1]
+    stored_path = tmp_path / "assets" / "input" / stored_name
+    assert stored_path.is_file()
     resp = client.delete(f"/api/v2/assets/{asset_id}?purge=true")
     assert resp.status_code == 200
     assert client.get(f"/api/v2/assets/{asset_id}").status_code == 404
+    assert not stored_path.exists()  # purge 清理磁盘文件
+
+
+def test_patch_name_null_rejected(client):
+    """PATCH name=null 返回 422（不允许置 null），不落库。"""
+    resp = client.post("/api/v2/assets/ingest/upload", files={"files": ("a.png", _png_bytes(), "image/png")})
+    asset_id = resp.json()["assets"][0]["id"]
+    r = client.patch(f"/api/v2/assets/{asset_id}", json={"name": None})
+    assert r.status_code == 422
+    assert r.json()["code"] == "VALIDATION_FAILED"
+    # 名称未被破坏
+    assert client.get(f"/api/v2/assets/{asset_id}").json()["asset"]["name"]
+
+
+def test_ingest_invalid_collection_fails_fast(client):
+    """collection_id 非法时整批拒绝（404），不创建任何资产（fail-fast）。"""
+    resp = client.post(
+        "/api/v2/assets/ingest",
+        json={"sources": [{"type": "remote_url", "url": "https://example.com/a.png"}], "collection_id": "col_nope"},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["code"] == "RESOURCE_NOT_FOUND"
+    assert client.get("/api/v2/assets").json()["items"] == []
 
 
 def test_purge_with_canvas_reference_conflicts(client):

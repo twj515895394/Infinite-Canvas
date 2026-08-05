@@ -103,8 +103,8 @@ export function UploadButton({
           <Loader2 className="size-3.5 animate-spin text-accent" aria-hidden />
           <div className="h-1 flex-1 overflow-hidden rounded-full bg-surface-subtle">
             <div
-              className="h-full rounded-full bg-accent transition-[width] duration-150 ease-ui"
-              style={{ width: `${Math.max(state.percent, 4)}%` }}
+              className="h-full w-full origin-left rounded-full bg-accent transition-transform duration-150 ease-ui"
+              style={{ transform: `scaleX(${Math.max(state.percent, 4) / 100})` }}
             />
           </div>
           <button
