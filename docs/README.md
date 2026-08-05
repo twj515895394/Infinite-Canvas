@@ -1,7 +1,7 @@
 # Infinite-Canvas 设计文档索引
 
 > 日期：2026-08-05  
-> 当前主题：Studio V2 Greenfield 前端、Agent/Skill 平台、UI 设计系统、画布节点体系与增量后端演进
+> 当前主题：Studio V2 Greenfield 前端、Agent/Skill 平台、资源版本体系、画布节点体系与增量后端演进
 
 ---
 
@@ -19,7 +19,7 @@
 - 现有 `/api/*` 接口保持兼容。
 - 新能力通过 `/api/v2/*`、`/ws/v2/*` 和后端内部 Adapter 增量提供。
 - Legacy Canvas 导入是可选兼容专题，不阻塞 Studio V2 主流程。
-- Agent、Skill、Runtime、Tool、Permission 和 Artifact 的优先级高于 Legacy Canvas 全量迁移。
+- Agent、Skill、Runtime、Tool、Permission、Asset 和 Artifact 的优先级高于 Legacy 全量迁移。
 
 > 当其他文档中的“渐进迁移”“新旧并行”或“Legacy Adapter”描述与本 ADR 存在歧义时，以本 ADR 为准。
 
@@ -149,12 +149,29 @@
 - Runtime、Agent、Skill、Binding、Session、Task、Run、Step、Message、Context、Tool、Permission、Idempotency 和 Event Outbox 表结构。
 - Skill Package 文件系统与数据库索引的存储边界。
 - 带类型前缀的公共 ID、时间、JSON 和 Revision 规则。
-- Runtime、Agent、Skill、Session、Context、Task、Run 和 Permission 的 Pydantic DTO。
 - Agent P0 `/api/v2` 字段级接口、状态码和错误码。
 - Normalized Runtime Event 与 Runtime Adapter 内部协议。
 - Tool Bridge、Task Dispatcher、Worker Lease、Heartbeat 和重启恢复。
 - Task 正常执行、等待权限、等待输入、取消、重试和服务重启时序。
 - Agent P0 实施顺序、测试要求和验收标准。
+
+### 1.11 Asset、Artifact、Version、Reference 与 Provenance
+
+[`studio-v2-asset-artifact-version-reference-and-provenance-design.md`](./studio-v2-asset-artifact-version-reference-and-provenance-design.md)
+
+用于确定：
+
+- Blob、Asset、AssetVersion、Artifact 和 ArtifactVersion 的职责边界。
+- 内容寻址 Blob Store、SHA-256 去重、Preview Derivative 和物理存储生命周期。
+- Asset 与 Artifact 不可变版本、Current Version、Restore 和 Revision 规则。
+- Pinned Reference 与 Current Reference，以及任务执行前的版本固定规则。
+- Asset、Version、Derivative、Annotation、Tag、Collection、Artifact Type、Artifact、Resource Link、Provenance 和 Application 表结构。
+- Asset Ingest、逻辑去重、多结果生成、版本创建和衍生资源规则。
+- Agent Structured Output 创建 Artifact、Schema Validation、Review、Diff、Apply 和 Revert。
+- GenerationJob 输出创建 Asset 与 Provenance 的标准流程。
+- 删除、Trash、Purge、Hard Reference 和 Blob GC。
+- Legacy Asset Library、本地素材、共享目录和 Existing Output 的显式导入边界。
+- Asset / Artifact / Link / Provenance API、DTO、事件、前端模块与实施顺序。
 
 ---
 
@@ -164,38 +181,42 @@
 2. 旧前端和 Studio V2 在过渡期独立运行。
 3. 保留 Python + FastAPI 后端，现有 `/api/*` 保持兼容。
 4. 新能力通过 `/api/v2/*`、`/ws/v2/*` 和内部 Adapter 增量提供。
-5. Studio V2 不隐式双写 Legacy Canvas 数据；Legacy 导入是可选兼容能力。
-6. 新前端使用 React + TypeScript + Vite。
-7. 生产流程画布使用 `@xyflow/react`。
-8. 不继续把 `static/js/canvas.js` 作为长期主架构扩展。
-9. 页面采用稳定的 App Shell：Navigation + Main Workspace + Inspector + Task Shelf。
-10. UI primitives 使用 Base UI，组件源码基座使用 shadcn/ui Base UI 版本。
-11. 高频微交互使用 CSS Transition 和 Base UI 状态；复杂可中断动效使用 Motion for React。
-12. React Flow 节点位置更新不套 Motion Layout，UI 动效不得牺牲画布性能。
-13. UI 参考 Apple Design 的响应、连续性、空间关系和克制原则，但不复制 Apple 产品外观。
-14. React Flow 只注册一个稳定的 `studio-node` Host，业务节点通过 Node Registry 扩展。
-15. 顶层 Node Kind 描述业务能力，不使用 Midjourney、RunningHub、ComfyUI 等供应商名称。
-16. 节点配置、布局、领域引用、运行任务和临时 UI 状态严格分离。
-17. 端口使用强类型 Port Definition，连接统一通过 Connection Policy 校验。
-18. 可撤销编辑统一通过 Command System；Canvas Undo 不撤销已提交的外部任务。
-19. 图片、视频、ComfyUI 和供应商任务统一为 GenerationJob。
-20. 画布保存由全量快照演进为 Operation + Snapshot。
-21. 素材演进为 Asset + AssetVersion + Reference。
-22. 结构化成果使用 Artifact + Version + Link。
-23. 实时事件使用 `/ws/v2/events`，支持 sequence 和断线补拉。
-24. `/api/v2` 使用 Pydantic Response Model 和稳定 OpenAPI，不使用裸顶层 `dict`。
-25. Agent Runtime 复用 Claude CLI、Codex CLI、Gemini CLI、Pi、oh-my-pi 和 ACP 等实现。
-26. Infinite-Canvas 实现 Agent Control Plane：Profile、Skill、Context、Tool、Permission、Task、Artifact 和 Event，不实现新的 Agent Harness。
-27. Agent 是执行者配置，Skill 是版本化能力定义，两者独立管理和多对多绑定。
-28. 所有 Agent 执行必须 Task / Run 化，并固定 Agent Revision、Skill Version 和 Context Snapshot。
-29. 所有副作用操作必须经过 Tool Gateway 或明确 Runtime 权限策略。
-30. 结构化 Agent 输出优先 Artifact 化，再由用户确认写回项目领域对象。
-31. Agent P0 运行状态使用 SQLite 持久化，不使用零散 JSON 文件作为权威状态。
-32. Skill Package 原始内容保存在文件系统，数据库保存身份、来源、版本、Checksum、验证结果和绑定。
-33. Agent 状态变化与 Studio Event Outbox 在同一事务提交，避免状态已改变但事件丢失。
-34. Run 使用 Lease 与 Heartbeat，服务重启后可识别并恢复或标记 Interrupted。
-35. Runtime Capability 必须真实探测；不支持 Tool Calling、Permission 或 Session Resume 时必须明确降级，不能伪造能力。
-36. Task、Tool Call 和其他副作用请求必须具备幂等边界，重试不能重复创建领域数据或付费任务。
+5. Studio V2 不隐式双写 Legacy 数据；Legacy 导入是可选兼容能力。
+6. 新前端使用 React + TypeScript + Vite，生产流程画布使用 `@xyflow/react`。
+7. 页面采用稳定的 App Shell：Navigation + Main Workspace + Inspector + Task Shelf。
+8. UI primitives 使用 Base UI，组件源码基座使用 shadcn/ui Base UI 版本。
+9. 高频微交互使用 CSS Transition 和 Base UI 状态；复杂可中断动效使用 Motion for React。
+10. React Flow 节点位置更新不套 Motion Layout，UI 动效不得牺牲画布性能。
+11. React Flow 只注册一个稳定的 `studio-node` Host，业务节点通过 Node Registry 扩展。
+12. 顶层 Node Kind 描述业务能力，不使用 Midjourney、RunningHub、ComfyUI 等供应商名称。
+13. 节点配置、布局、领域引用、运行任务和临时 UI 状态严格分离。
+14. 可撤销编辑统一通过 Command System；Canvas Undo 不撤销已提交的外部任务。
+15. 图片、视频、ComfyUI 和供应商任务统一为 GenerationJob。
+16. 画布保存由全量快照演进为 Operation + Snapshot。
+17. Agent Runtime 复用 Claude CLI、Codex CLI、Gemini CLI、Pi、oh-my-pi 和 ACP 等实现。
+18. Infinite-Canvas 实现 Agent Control Plane，不实现新的 Agent Harness。
+19. Agent 是执行者配置，Skill 是版本化能力定义，两者独立管理和多对多绑定。
+20. 所有 Agent 执行必须 Task / Run 化，并固定 Agent Revision、Skill Version 和 Context Snapshot。
+21. 所有副作用操作必须经过 Tool Gateway 或明确 Runtime 权限策略。
+22. 结构化 Agent 输出优先 Artifact 化，再由用户确认写回项目领域对象。
+23. Agent P0 运行状态使用 SQLite 持久化，不使用零散 JSON 文件作为权威状态。
+24. Skill Package 原始内容保存在文件系统，数据库保存身份、来源、版本、Checksum、验证结果和绑定。
+25. Agent 状态变化与 Studio Event Outbox 在同一事务提交。
+26. Run 使用 Lease 与 Heartbeat，服务重启后可识别并恢复或标记 Interrupted。
+27. Runtime Capability 必须真实探测，不支持的能力必须明确降级。
+28. Task、Tool Call 和其他副作用请求必须具备幂等边界。
+29. Blob 是不可变物理内容；Asset 是可复用媒体身份；Artifact 是可审阅结构化成果。
+30. AssetVersion 和 ArtifactVersion 创建后不可原地修改。
+31. 任务、Agent Context、GenerationJob 和历史记录必须固定具体 Version，不允许执行期间跟随 Current Version。
+32. Blob 按 SHA-256 物理去重，但不同 Project 的逻辑 Asset 不自动合并。
+33. 一次生成的多个候选结果创建多个 Asset，不创建一个 Asset 的多个 Version。
+34. Asset 与 Artifact 的跨领域关系统一通过 Resource Link 表达。
+35. Agent 和 Generation 输出必须记录 Provenance，包括输入 Version、Runtime、Skill、模型、参数和 Context。
+36. Agent 批量写入默认先产生 Artifact Preview，再通过 Diff 和 Apply 写入领域对象。
+37. Trash 不破坏历史引用；Purge 必须通过 Hard Reference 检查；Blob 仅在零引用且超过保留期后 GC。
+38. Studio V2 新 Asset 不自动回写 `asset_library.json`，Legacy 资源通过显式 Ingest 导入。
+39. 实时事件统一使用 `/ws/v2/events`，支持 Sequence、Outbox 和断线补拉。
+40. `/api/v2` 使用 Pydantic Response Model 和稳定 OpenAPI，不使用裸顶层 `dict`。
 
 ---
 
@@ -213,10 +234,11 @@
 | React Flow 节点模型与 Node Registry | 已完成 v1.0 |
 | Agent、Skill、Runtime 与管理系统 | 已完成 v1.0 |
 | Agent / Skill P0 Contract 与 SQLite | 已完成 v1.0 |
-| Asset / Artifact 数据模型 | 待设计 |
-| GenerationJob 状态机 | 节点绑定已定义，完整状态机和 Adapter 待设计 |
+| Asset / Artifact / Version / Provenance | 已完成 v1.0 |
+| GenerationJob 状态机 | 节点和资源绑定已定义，完整状态机和 Adapter 待设计 |
 | Event Hub 详细协议 | P0 已定义，Outbox 表已确定，Publisher 与聚合细节待设计 |
 | AI 影视创作领域对象 | 总体模型已定义，字段与流程待细化 |
+| 首批内置 Skill | 名单已定义，Manifest、Schema 和测试待设计 |
 | Legacy Canvas 可选导入 | 节点级映射已定义，导入报告和回滚后续设计 |
 | 实施任务和里程碑 | 待设计 |
 
@@ -224,16 +246,15 @@
 
 ## 4. 后续详细设计顺序
 
-按当前产品优先级继续：
+按当前产品依赖继续：
 
-1. Asset、AssetVersion、Artifact、ArtifactVersion 和统一 Resource Reference 数据模型。
-2. GenerationJob 状态机、Attempt、Executor 和供应商 Adapter 设计。
-3. Studio Event Outbox Publisher、持久化、聚合、限流和重连实现细节。
-4. Project Bible、Script、Character、Scene、Shot 和 Storyboard 详细领域设计与 Tool Contract。
-5. Agent Center、Agent Dock、Permission Card 和 Artifact Preview 可交互原型。
-6. 首批内置 Skill 的 Manifest、Schema、Prompt、测试与质量规则。
-7. 分阶段实施任务、依赖关系、验收标准和开发里程碑。
-8. Legacy Canvas 可选导入、迁移报告和失败回滚。
+1. GenerationJob 状态机、Attempt、Executor、Input Snapshot、Output Writer 和供应商 Adapter。
+2. Studio Event Outbox Publisher、持久化、聚合、限流和重连实现细节。
+3. Project Bible、Script、Character、Scene、Shot 和 Storyboard 详细领域设计与 Tool Contract。
+4. Agent Center、Agent Dock、Permission Card、Asset Inspector 和 Artifact Preview 可交互原型。
+5. 首批内置 Skill 的 Manifest、Schema、Prompt、测试与质量规则。
+6. 分阶段实施任务、依赖关系、验收标准和开发里程碑。
+7. Legacy Asset / Canvas 可选导入、迁移报告和失败回滚。
 
 ---
 
@@ -262,6 +283,9 @@ Accepted ADR
 - Agent Profile、Skill、Runtime、Tool 或 Permission Contract 修改时，必须同步管理 UI、事件和审计用例。
 - Agent 数据表修改时必须通过 Migration，不得在启动代码中静默重建数据库。
 - Skill Manifest 修改时必须同步版本规则、Validator 和测试样例。
+- Asset、Artifact、Version、Resource Link 或 Provenance Contract 修改时，必须同步 Context、GenerationJob、Canvas Binding 和删除影响分析。
+- Artifact Type Schema 修改时必须增加 Schema Version 和迁移规则，不能原地覆盖历史 Schema。
+- Blob Store 修改时必须提供校验、迁移、回滚和 GC 安全策略。
 - Node Definition 修改时，必须同步 Definition Version、迁移函数、Inspector、Port 和测试。
 - 新增 Provider 或 Executor 时，优先扩展 Adapter，不得默认增加新的顶层 Node Kind。
 - Design Token 和 Motion Token 修改时，必须同步组件 Story 和视觉回归用例。
