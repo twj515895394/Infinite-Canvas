@@ -68,6 +68,13 @@ logging.getLogger("uvicorn.access").addFilter(QuietAccessLogFilter())
 
 app = FastAPI()
 
+# --- Studio V2 领域层挂载（独立模块 API/v2，见 docs/README.md §2） ---
+from API.v2.router import v2_router
+from API.v2.problems import V2Error, api_problem_exception_handler
+
+app.add_exception_handler(V2Error, api_problem_exception_handler)
+app.include_router(v2_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19034,5 +19041,5 @@ if __name__ == "__main__":
     # 关闭服务端协议级 WebSocket ping：部分客户端（如 PS UXP 面板）不会自动回 pong，
     # 默认 20s ping/20s 超时会把这些连接每隔一会儿就踢掉造成"频繁断连"。
     # 客户端有自己的应用层心跳 + 断线重连兜底，这里禁用协议 ping 更稳。
-    uvicorn.run(app, host="0.0.0.0", port=3000,
+    uvicorn.run(app, host="0.0.0.0", port=3888,
                 ws_ping_interval=None, ws_ping_timeout=None)
