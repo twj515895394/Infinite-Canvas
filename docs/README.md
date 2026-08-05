@@ -1,7 +1,7 @@
 # Infinite-Canvas 设计文档索引
 
 > 日期：2026-08-05  
-> 当前主题：Studio V2 Greenfield 前端、Agent/Skill 平台、资源版本体系、画布节点体系与增量后端演进
+> 当前主题：Studio V2 Greenfield 前端、Agent/Skill 平台、资源版本体系、统一生成任务、画布节点体系与增量后端演进
 
 ---
 
@@ -19,7 +19,7 @@
 - 现有 `/api/*` 接口保持兼容。
 - 新能力通过 `/api/v2/*`、`/ws/v2/*` 和后端内部 Adapter 增量提供。
 - Legacy Canvas 导入是可选兼容专题，不阻塞 Studio V2 主流程。
-- Agent、Skill、Runtime、Tool、Permission、Asset 和 Artifact 的优先级高于 Legacy 全量迁移。
+- Agent、Skill、Runtime、Tool、Permission、Asset、Artifact 和 GenerationJob 的优先级高于 Legacy 全量迁移。
 
 > 当其他文档中的“渐进迁移”“新旧并行”或“Legacy Adapter”描述与本 ADR 存在歧义时，以本 ADR 为准。
 
@@ -100,9 +100,11 @@
 - Bootstrap、Runtime Capability 和 Project DTO。
 - Canvas Document、Operation、Snapshot 和 Revision 冲突处理。
 - Asset Query、Asset Ingest 和 AssetVersion 摘要。
-- Unified GenerationJob、Attempt、Cancel 和 Retry。
+- Unified GenerationJob、Attempt、Cancel 和 Retry 的早期 P0 Contract。
 - Studio Event Envelope、WebSocket、Heartbeat 和 Replay。
 - P0 后端模块结构、持久化最低要求、测试和实施顺序。
+
+> GenerationJob 的完整状态、表结构、Executor 和 Adapter 规则以 1.12 专项文档为准。
 
 ### 1.8 React Flow 节点模型与 Node Registry
 
@@ -173,6 +175,24 @@
 - Legacy Asset Library、本地素材、共享目录和 Existing Output 的显式导入边界。
 - Asset / Artifact / Link / Provenance API、DTO、事件、前端模块与实施顺序。
 
+### 1.12 GenerationJob 状态机、Executor 与供应商 Adapter
+
+[`studio-v2-generation-job-state-machine-executor-and-adapter-design.md`](./studio-v2-generation-job-state-machine-executor-and-adapter-design.md)
+
+用于确定：
+
+- GenerationJob、GenerationAttempt、Executor、Provider Task、Input Snapshot 和 GenerationOutput 的职责边界。
+- 图片、视频、Workflow、Asset Transform 的稳定 Job Kind 与 Operation。
+- Job / Attempt 状态机、Stage、部分成功、Interrupted 和 Abandoned 语义。
+- Execution Policy、Pinned / Auto、Fallback、优先级、成本和超时策略。
+- Executor Registry、Capability、Limit、Health 和匹配规则。
+- 同步 HTTP、异步轮询、CLI 子进程、ComfyUI、RunningHub、即梦、Midjourney、Codex Image Skill 和 Legacy Function Adapter。
+- Queue、Dispatcher、Project 公平调度、Lease、Heartbeat、Backpressure 和重启恢复。
+- Cancel、Retry、Missing Outputs、Late Result 和 Output Adoption。
+- Output Writer、Blob、Asset / AssetVersion、Provenance 和 Canvas Node Binding。
+- GenerationJob、Attempt、Input、Output、Cost 和执行事件表结构。
+- Job / Attempt / Executor API、事件、前端 Task Shelf、测试与实施顺序。
+
 ---
 
 ## 2. 当前已确定的核心决策
@@ -215,8 +235,18 @@
 36. Agent 批量写入默认先产生 Artifact Preview，再通过 Diff 和 Apply 写入领域对象。
 37. Trash 不破坏历史引用；Purge 必须通过 Hard Reference 检查；Blob 仅在零引用且超过保留期后 GC。
 38. Studio V2 新 Asset 不自动回写 `asset_library.json`，Legacy 资源通过显式 Ingest 导入。
-39. 实时事件统一使用 `/ws/v2/events`，支持 Sequence、Outbox 和断线补拉。
-40. `/api/v2` 使用 Pydantic Response Model 和稳定 OpenAPI，不使用裸顶层 `dict`。
+39. GenerationJob 表达一次稳定用户意图；每次真实执行使用独立 Attempt。
+40. Executor 描述可执行能力；Provider Task ID、原始状态和供应商参数只属于 Attempt / Adapter。
+41. Job 和 Attempt 使用独立状态机；供应商状态通过 Adapter 映射为统一 Status 与 Stage。
+42. Input Snapshot 在 Job 创建时固定，运行中不重新读取 Current Asset、当前节点配置或可变 Workflow 文件。
+43. Retry、自动 Fallback 和用户重新执行必须区分；语义输入变化时创建新 Job，而不是覆盖旧 Snapshot。
+44. 多输出任务允许 `partially_succeeded`，已成功结果不会因为其他结果失败而丢失。
+45. 取消后迟到的付费结果默认归档或保持未绑定，不静默丢弃，也不自动覆盖节点当前结果。
+46. 所有生成结果必须经过 Output Writer 才能创建 Blob、Asset / AssetVersion、Preview、Provenance 和 Node Binding。
+47. Generation Attempt 使用 Lease 与 Heartbeat；重启后支持 Recovery，无法确认时标记 Interrupted，不无条件重复提交付费任务。
+48. 自动 Fallback 只针对可解释的临时性错误，不能静默绕过内容政策、认证、费用或输入错误。
+49. 实时事件统一使用 `/ws/v2/events`，支持 Sequence、Outbox、节流和断线补拉。
+50. `/api/v2` 使用 Pydantic Response Model 和稳定 OpenAPI，不使用裸顶层 `dict`。
 
 ---
 
@@ -235,8 +265,8 @@
 | Agent、Skill、Runtime 与管理系统 | 已完成 v1.0 |
 | Agent / Skill P0 Contract 与 SQLite | 已完成 v1.0 |
 | Asset / Artifact / Version / Provenance | 已完成 v1.0 |
-| GenerationJob 状态机 | 节点和资源绑定已定义，完整状态机和 Adapter 待设计 |
-| Event Hub 详细协议 | P0 已定义，Outbox 表已确定，Publisher 与聚合细节待设计 |
+| GenerationJob 状态机、Executor 与 Adapter | 已完成 v1.0 |
+| Event Hub 详细协议 | P0 已定义，Outbox 表已确定，Publisher、聚合与重连细节待设计 |
 | AI 影视创作领域对象 | 总体模型已定义，字段与流程待细化 |
 | 首批内置 Skill | 名单已定义，Manifest、Schema 和测试待设计 |
 | Legacy Canvas 可选导入 | 节点级映射已定义，导入报告和回滚后续设计 |
@@ -248,10 +278,10 @@
 
 按当前产品依赖继续：
 
-1. GenerationJob 状态机、Attempt、Executor、Input Snapshot、Output Writer 和供应商 Adapter。
-2. Studio Event Outbox Publisher、持久化、聚合、限流和重连实现细节。
-3. Project Bible、Script、Character、Scene、Shot 和 Storyboard 详细领域设计与 Tool Contract。
-4. Agent Center、Agent Dock、Permission Card、Asset Inspector 和 Artifact Preview 可交互原型。
+1. Studio Event Outbox Publisher、事件持久化、聚合、限流和重连实现细节。
+2. Project Bible、Script、Character、Scene、Shot 和 Storyboard 详细领域设计与 Tool Contract。
+3. Agent Tool `generation.submit`、预算、付费权限和任务联动。
+4. Agent Center、Agent Dock、Permission Card、Asset Inspector、Artifact Preview、Task Shelf 和 Job Detail 可交互原型。
 5. 首批内置 Skill 的 Manifest、Schema、Prompt、测试与质量规则。
 6. 分阶段实施任务、依赖关系、验收标准和开发里程碑。
 7. Legacy Asset / Canvas 可选导入、迁移报告和失败回滚。
@@ -281,13 +311,14 @@ Accepted ADR
 - 旧 `/api/*` 修改时必须进行兼容性评估。
 - `/api/v2` Contract 修改时，必须同步更新 OpenAPI、前端 TypeScript 类型、关键 Zod Schema 和本目录设计文档。
 - Agent Profile、Skill、Runtime、Tool 或 Permission Contract 修改时，必须同步管理 UI、事件和审计用例。
-- Agent 数据表修改时必须通过 Migration，不得在启动代码中静默重建数据库。
+- Agent 和 Generation 数据表修改时必须通过 Migration，不得在启动代码中静默重建数据库。
 - Skill Manifest 修改时必须同步版本规则、Validator 和测试样例。
 - Asset、Artifact、Version、Resource Link 或 Provenance Contract 修改时，必须同步 Context、GenerationJob、Canvas Binding 和删除影响分析。
 - Artifact Type Schema 修改时必须增加 Schema Version 和迁移规则，不能原地覆盖历史 Schema。
 - Blob Store 修改时必须提供校验、迁移、回滚和 GC 安全策略。
+- GenerationJob Status、Attempt Status、Executor Capability、Fallback 或 Cancel 规则修改时，必须同步 Adapter Contract、事件、Task Shelf、恢复测试和 OpenAPI。
+- 新增 Provider、Model、Workflow 或 Runtime 时，优先注册 Executor 和 Adapter，不得默认增加新的顶层 Node Kind 或公共 Job Kind。
 - Node Definition 修改时，必须同步 Definition Version、迁移函数、Inspector、Port 和测试。
-- 新增 Provider 或 Executor 时，优先扩展 Adapter，不得默认增加新的顶层 Node Kind。
 - Design Token 和 Motion Token 修改时，必须同步组件 Story 和视觉回归用例。
 - Legacy API 进入废弃状态时，记录替代接口和迁移期限。
 - 供应商专用字段不得直接扩散到 Studio V2 公共 DTO。
