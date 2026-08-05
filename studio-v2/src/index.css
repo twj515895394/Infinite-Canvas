@@ -35,6 +35,34 @@
   --ease-enter: cubic-bezier(0.34, 1.3, 0.4, 1);
 }
 
+/* 浅色主题（F10 外观设置）。语义映射见设计文档 §5.1（亮色值按 oklch 语义落地）。 */
+[data-theme='light'] {
+  --color-bg: oklch(0.95 0.006 255);
+  --color-surface: oklch(0.985 0.003 255);
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: rgba(255, 255, 255, 0.85);
+  --color-border: oklch(0.78 0.01 255 / 0.5);
+  --color-border-strong: oklch(0.58 0.015 255 / 0.55);
+  --color-text: oklch(0.22 0.012 255);
+  --color-text-muted: oklch(0.46 0.012 255);
+  --color-text-faint: oklch(0.6 0.01 255);
+  --color-accent: oklch(0.55 0.19 255);
+  --color-accent-strong: oklch(0.48 0.2 255);
+  --color-success: oklch(0.55 0.15 150);
+  --color-warning: oklch(0.62 0.15 75);
+  --color-danger: oklch(0.55 0.2 25);
+}
+
+/* 手动动效降级（F10 外观设置）：与 prefers-reduced-motion 同策略 */
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 /* 全局基础 */
 html,
 body,

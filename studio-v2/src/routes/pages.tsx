@@ -63,22 +63,3 @@ export function AgentsPage() {
     />
   )
 }
-
-export function SettingsPage() {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-3 px-6 text-center">
-      <h1 className="text-lg font-semibold text-text">设置</h1>
-      <p className="max-w-md text-sm text-text-muted">
-        Provider 配置、存储目录、Runtime 探测与旧版回退将在此实现（切片 11）。
-      </p>
-      <a
-        href="http://127.0.0.1:3888/"
-        target="_blank"
-        rel="noreferrer"
-        className="text-sm text-accent hover:underline"
-      >
-        返回旧版前端（回退入口）
-      </a>
-    </div>
-  )
-}

@@ -7,6 +7,7 @@
  * - 底部 Task Shelf（MVP 阶段为占位）
  */
 import type { ReactNode } from 'react'
+import { useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   FolderOpen,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react'
 import { IconButton } from '@/components/ui/button'
 import { cn } from '@/core/utils/cn'
+import { applyAppearance, useAppearance } from '@/features/settings/appearance'
 
 const NAV_ITEMS = [
   { to: '/projects', label: '项目', icon: FolderOpen },
@@ -91,6 +93,18 @@ function TaskShelf() {
 }
 
 export default function AppShell({ children }: { children?: ReactNode }) {
+  // 外观偏好启动即应用；theme=system 时跟随系统变化
+  const theme = useAppearance((s) => s.theme)
+  const motion = useAppearance((s) => s.motion)
+  useEffect(() => {
+    applyAppearance(theme, motion)
+    if (theme !== 'system') return
+    const mq = window.matchMedia('(prefers-color-scheme: light)')
+    const onChange = () => applyAppearance(theme, motion)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [theme, motion])
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1">
