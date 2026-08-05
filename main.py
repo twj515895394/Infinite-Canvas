@@ -71,7 +71,9 @@ app = FastAPI()
 # --- Studio V2 领域层挂载（独立模块 API/v2，见 docs/README.md §2） ---
 from API.v2.router import v2_router
 from API.v2.problems import V2Error, api_problem_exception_handler
+from API.v2 import db
 
+db.init_db()  # 幂等：建库建表（data/studio-v2/studio.db）
 app.add_exception_handler(V2Error, api_problem_exception_handler)
 app.include_router(v2_router)
 

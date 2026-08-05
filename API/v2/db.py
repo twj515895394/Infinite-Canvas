@@ -25,6 +25,31 @@ BASE_SCHEMA = [
         value TEXT NOT NULL
     )
     """,
+    # Canvas V2：画布元数据 + 最新快照（B3）
+    """
+    CREATE TABLE IF NOT EXISTS canvases (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 1,
+        status TEXT NOT NULL DEFAULT 'active',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        snapshot_json TEXT NOT NULL
+    )
+    """,
+    # Canvas V2：增量操作历史（B3），operation_id 幂等去重
+    """
+    CREATE TABLE IF NOT EXISTS canvas_operations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        canvas_id TEXT NOT NULL,
+        operation_id TEXT NOT NULL,
+        base_revision INTEGER NOT NULL,
+        payload_json TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        UNIQUE (canvas_id, operation_id)
+    )
+    """,
 ]
 
 
