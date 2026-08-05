@@ -28,6 +28,15 @@ export function ProjectsPage() {
   )
 }
 
+export function ProjectDetailPage() {
+  return (
+    <PlaceholderPage
+      title="项目详情"
+      description="该项目的画布列表与创建将在此实现（切片 09/17）。"
+    />
+  )
+}
+
 export function CanvasPage() {
   return (
     <PlaceholderPage

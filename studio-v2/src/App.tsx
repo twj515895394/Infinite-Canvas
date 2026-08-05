@@ -3,7 +3,8 @@
  */
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from '@/app/AppShell'
-import { ProjectsPage, CanvasPage, AssetsPage, AgentsPage, SettingsPage } from '@/routes/pages'
+import ProjectsPage from '@/features/projects/ProjectsPage'
+import { ProjectDetailPage, CanvasPage, AssetsPage, AgentsPage, SettingsPage } from '@/routes/pages'
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route path="/" element={<Navigate to="/projects" replace />} />
         <Route path="/projects" element={<ProjectsPage />} />
+        <Route path="/projects/:projectId" element={<ProjectDetailPage />} />
         <Route path="/projects/:projectId/canvases/:canvasId" element={<CanvasPage />} />
         <Route path="/assets" element={<AssetsPage />} />
         <Route path="/agents" element={<AgentsPage />} />
