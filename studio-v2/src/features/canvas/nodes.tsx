@@ -4,9 +4,10 @@
  */
 import { memo } from 'react'
 import { Handle, Position, type NodeProps, type NodeTypes } from '@xyflow/react'
-import { Image, Film, Workflow, Box, FileText, FolderTree, Wand2, Type } from 'lucide-react'
+import { Image, Film, Workflow, Box, FileText, FolderTree, Wand2, Type, Bot } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { nodeRegistry, type NodeDefinition } from '@/features/canvas/registry'
+import { validateAgentTaskConfig } from '@/features/canvas/agentTaskNode'
 import { cn } from '@/core/utils/cn'
 import type { MediaKind } from '@/features/media/api'
 import { MediaThumbnail } from '@/features/media/components/MediaThumbnail'
@@ -18,7 +19,7 @@ function toThumbKind(kind: unknown): MediaKind {
   return typeof kind === 'string' && MEDIA_KIND_SET[kind] === true ? (kind as MediaKind) : 'file'
 }
 
-export const NODE_TYPES = ['asset', 'prompt', 'image-generation', 'video-generation', 'workflow', 'output', 'group', 'artifact'] as const
+export const NODE_TYPES = ['asset', 'prompt', 'image-generation', 'video-generation', 'workflow', 'output', 'group', 'artifact', 'agent-task'] as const
 
 const NODE_ICONS: Record<string, ComponentType<{ size?: number; className?: string }>> = {
   asset: Box,
@@ -29,13 +30,14 @@ const NODE_ICONS: Record<string, ComponentType<{ size?: number; className?: stri
   output: Image,
   group: FolderTree,
   artifact: FileText,
+  'agent-task': Bot,
 }
 
 function define(def: NodeDefinition): NodeDefinition {
   return def
 }
 
-/** 注册 MVP 8 类节点（模块加载时执行一次，随后冻结） */
+/** 注册 MVP 节点（含 agent-task；模块加载时执行一次，随后冻结） */
 export function registerMvpNodes(): void {
   if (nodeRegistry.get('prompt')) return // 幂等
   const defs: NodeDefinition[] = [
@@ -123,6 +125,24 @@ export function registerMvpNodes(): void {
       ],
       configSchema: [{ key: 'title', label: '标题', type: 'text' }],
     }),
+    define({
+      type: 'agent-task',
+      label: 'Agent 任务',
+      ports: [
+        { id: 'context', label: '上下文', kind: 'any', direction: 'input' },
+        { id: 'assets', label: '素材', kind: 'asset', direction: 'input' },
+        { id: 'out', label: '结果', kind: 'text', direction: 'output' },
+        { id: 'task', label: 'Task', kind: 'text', direction: 'output' },
+      ],
+      // 实际表单由 AgentTaskInspector 驱动；此处兜底 + validate
+      configSchema: [
+        { key: 'agent_profile_id', label: 'Agent ID', type: 'text' },
+        { key: 'skill_id', label: 'Skill ID', type: 'text' },
+        { key: 'instruction', label: '任务说明', type: 'textarea' },
+      ],
+      capabilities: ['agent-task'],
+      validate: (config) => validateAgentTaskConfig(config),
+    }),
   ]
   for (const def of defs) nodeRegistry.register(def)
   nodeRegistry.freeze()
@@ -144,6 +164,12 @@ const STATUS_LABELS: Record<string, string> = {
   succeeded: '成功',
   failed: '失败',
   cancelled: '已取消',
+  // Agent Task 扩展态（F15）
+  draft: '草稿',
+  preparing: '准备中',
+  waiting_permission: '等待权限',
+  waiting_input: '等待输入',
+  cancel_requested: '取消中',
 }
 
 const STATUS_CHIP: Record<string, string> = {
@@ -153,6 +179,11 @@ const STATUS_CHIP: Record<string, string> = {
   succeeded: 'bg-success/15 text-success',
   failed: 'bg-danger/15 text-danger',
   cancelled: 'bg-text-faint/15 text-text-faint',
+  draft: 'bg-text-faint/15 text-text-muted',
+  preparing: 'bg-warning/15 text-warning',
+  waiting_permission: 'bg-warning/15 text-warning',
+  waiting_input: 'bg-warning/15 text-warning',
+  cancel_requested: 'bg-text-faint/15 text-text-muted',
 }
 
 /** 统一节点 Host：标题 + 状态 + 输入/输出端口 */
@@ -163,7 +194,14 @@ export const StudioNodeHost = memo(function StudioNodeHost({ data, selected }: N
   if (!def) {
     return <div className="rounded-lg border border-danger/50 bg-surface px-3 py-2 text-xs text-danger">未知节点 {nodeType}</div>
   }
-  const running = status === 'running' || status === 'queued'
+  const running =
+    status === 'running' ||
+    status === 'queued' ||
+    status === 'preparing' ||
+    status === 'waiting_permission' ||
+    status === 'waiting_input' ||
+    status === 'cancel_requested' ||
+    status === 'draft'
   return (
     <div
       className={cn(
@@ -194,6 +232,9 @@ export const StudioNodeHost = memo(function StudioNodeHost({ data, selected }: N
             config.workflow ??
             config.title ??
             config.label ??
+            config.instruction ??
+            config.result_summary ??
+            config.active_task_id ??
             (nodeType === 'asset' ? config.name : '') ??
             '',
         ) || '未配置'}

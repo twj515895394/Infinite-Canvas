@@ -53,11 +53,11 @@ describe('NodeRegistry', () => {
 
   it('MVP 节点集全部注册', () => {
     const r = new NodeRegistry()
-    for (const t of ['asset', 'prompt', 'image-generation', 'video-generation', 'workflow', 'output', 'group', 'artifact']) {
+    for (const t of ['asset', 'prompt', 'image-generation', 'video-generation', 'workflow', 'output', 'group', 'artifact', 'agent-task']) {
       r.register(baseDef(t))
     }
     r.freeze()
-    for (const t of ['asset', 'prompt', 'image-generation', 'video-generation', 'workflow', 'output', 'group', 'artifact']) {
+    for (const t of ['asset', 'prompt', 'image-generation', 'video-generation', 'workflow', 'output', 'group', 'artifact', 'agent-task']) {
       expect(r.has(t)).toBe(true)
     }
   })

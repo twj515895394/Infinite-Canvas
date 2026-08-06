@@ -45,6 +45,9 @@ interface DockState {
     canvasId?: string | null
     contextRefs?: DockContextRef[]
     message?: string
+    /** 打开并定位到已有 Task（节点「查看结果」）。 */
+    activeTaskId?: string | null
+    sessionId?: string | null
   }) => void
   closeDock: () => void
   setAgentId: (id: string | null) => void
@@ -84,6 +87,9 @@ export const useDockStore = create<DockState>()((set, get) => ({
         canvasId: opts?.canvasId !== undefined ? opts.canvasId : s.canvasId,
         message: opts?.message !== undefined ? opts.message : s.message,
         contextRefs: merged,
+        // 查看已有 Task：同步 activeTaskId / sessionId（不清除其他草稿）
+        activeTaskId: opts?.activeTaskId !== undefined ? opts.activeTaskId : s.activeTaskId,
+        sessionId: opts?.sessionId !== undefined ? opts.sessionId : s.sessionId,
       }
     })
   },

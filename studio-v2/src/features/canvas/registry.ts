@@ -78,5 +78,5 @@ export class NodeRegistry {
   }
 }
 
-/** 全局单例：MVP 启动时注册 8 类节点并冻结 */
+/** 全局单例：MVP 启动时注册节点并冻结（含 agent-task） */
 export const nodeRegistry = new NodeRegistry()

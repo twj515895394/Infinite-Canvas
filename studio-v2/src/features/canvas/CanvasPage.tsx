@@ -32,6 +32,7 @@ import { ASSET_DRAG_MIME, parseAssetDragPayload, toMediaKind } from '@/features/
 import { ImageGenInspector } from '@/features/generation/ImageGenInspector'
 import { VideoInspector } from '@/features/generation/VideoInspector'
 import { WorkflowInspector } from '@/features/generation/WorkflowInspector'
+import { AgentTaskInspector } from '@/features/canvas/AgentTaskInspector'
 import { loadCanvas, saveCanvasSnapshot, isRevisionConflict } from '@/features/canvas/persistence'
 import { cn } from '@/core/utils/cn'
 import { useDockStore, nodeToContextRef } from '@/features/agents/dockStore'
@@ -128,6 +129,14 @@ function InspectorPanel() {
       <div className="flex flex-col gap-3 p-3">
         <div className="text-xs font-medium text-text">ComfyUI 工作流 参数</div>
         <WorkflowInspector nodeId={node.id} config={node.config} updateConfig={updateConfig} />
+      </div>
+    )
+  }
+  if (def.type === 'agent-task') {
+    return (
+      <div className="flex flex-col gap-3 p-3">
+        <div className="text-xs font-medium text-text">Agent 任务 参数</div>
+        <AgentTaskInspector nodeId={node.id} config={node.config} updateConfig={updateConfig} />
       </div>
     )
   }
