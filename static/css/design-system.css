@@ -40,6 +40,37 @@ body {
     border-radius: 6px !important;
 }
 
+/* 强制修复 Windows / WebKit 缩放及 Canvas 模式下 cursor: grab/grabbing 引发的鼠标指针隐形 BUG */
+.shell,
+.board,
+.world,
+.stage {
+    cursor: default;
+}
+
+.shell,
+.board,
+.minimax-top,
+.minimax-track,
+.minimax-lane,
+.minimax-media,
+.minimax-material-card,
+.minimax-wb-toolbar,
+.smart-group-member-grab {
+    cursor: grab, move, default !important;
+}
+
+.shell.panning,
+.shell.panning *,
+.shell:active,
+.board:active,
+body.smart-node-drag,
+body.smart-node-drag *,
+body.canvas-board-pan,
+body.canvas-board-pan * {
+    cursor: grabbing, move, default !important;
+}
+
 /* Scrollbars — slimmer + less aggressive */
 * {
     scrollbar-width: thin !important;
