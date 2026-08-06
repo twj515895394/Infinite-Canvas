@@ -3,7 +3,8 @@
  * React Flow 集成：studio-node Host、Node Registry、Command/Undo-Redo、
  * 连接验证、保存/重开闭环、revision 冲突提示。
  */
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   ReactFlow,
@@ -11,6 +12,7 @@ import {
   Background,
   Controls,
   MiniMap,
+  useReactFlow,
   type Node as RFNode,
   type Edge as RFEdge,
   type Connection,
@@ -24,7 +26,9 @@ import { Dialog } from '@/components/ui/dialog'
 import { useEditorStore, type CanvasMeta } from '@/features/canvas/store'
 import { nodeRegistry, type InspectorField } from '@/features/canvas/registry'
 import { registerMvpNodes, nodeTypes, NODE_TYPES } from '@/features/canvas/nodes'
+import { AssetDrawer } from '@/features/canvas/AssetDrawer'
 import type { CanvasNode, CanvasEdge } from '@/features/canvas/ports'
+import { ASSET_DRAG_MIME, parseAssetDragPayload, toMediaKind } from '@/features/assets/api'
 import { ImageGenInspector } from '@/features/generation/ImageGenInspector'
 import { VideoInspector } from '@/features/generation/VideoInspector'
 import { WorkflowInspector } from '@/features/generation/WorkflowInspector'
@@ -53,6 +57,14 @@ function stableVideosOf(result: unknown): string[] {
  * 视频节点返回视频 url（MediaThumbnail 用 /api/media-preview 首帧作 poster，不整段加载）；
  * 输出节点收集上游结果。kind 随来源传递（视频走 video 语义，图片/工作流走 image）。 */
 function resultUrlsFor(node: CanvasNode, nodes: CanvasNode[], edges: CanvasEdge[]): { url: string; kind: string }[] {
+  if (node.type === 'asset') {
+    // asset 节点：展示缓存来自拖入时写入的 config（content/preview url），引用主键是 asset_version_id；
+    // kind 经 toMediaKind 映射（audio/document 等走图标分支，避免按 image 渲染破图）
+    const url = typeof node.config?.content_url === 'string' && node.config.content_url ? node.config.content_url : null
+    if (!url) return []
+    const kind = toMediaKind(typeof node.config?.kind === 'string' ? node.config.kind : 'image')
+    return [{ url, kind }]
+  }
   if (node.type === 'image-generation' || node.type === 'workflow') {
     return stableUrlsOf(node.config?.result).map((url) => ({ url, kind: 'image' }))
   }
@@ -312,6 +324,54 @@ function CanvasWorkspace() {
     return id
   }
 
+  /* 资产拖入画布（F12）：从 Asset Drawer 拖拽 → 创建 asset 节点（config 存 asset_version_id 引用） */
+  const { screenToFlowPosition } = useReactFlow()
+  const [dropHint, setDropHint] = useState<string | null>(null)
+  const dropHintTimer = useRef<number | null>(null)
+  const reduceMotion = useReducedMotion()
+
+  /* dropHint 自动消失（1.6s；注释与实现一致） */
+  const flashDropHint = useCallback((text: string) => {
+    setDropHint(text)
+    if (dropHintTimer.current) window.clearTimeout(dropHintTimer.current)
+    dropHintTimer.current = window.setTimeout(() => setDropHint(null), 1600)
+  }, [])
+
+  const onDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes(ASSET_DRAG_MIME)) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'copy'
+    }
+  }, [])
+  const onDrop = useCallback(
+    (e: React.DragEvent) => {
+      const raw = e.dataTransfer.getData(ASSET_DRAG_MIME)
+      const payload = parseAssetDragPayload(raw)
+      if (!payload) return
+      e.preventDefault()
+      if (payload.status === 'trashed') {
+        flashDropHint(`「${payload.name}」已在回收站，无法拖入画布`)
+        return
+      }
+      const position = screenToFlowPosition({ x: e.clientX, y: e.clientY })
+      const id = store.getState().addNode('asset', position)
+      if (id) {
+        store.getState().updateConfig(id, {
+          asset_id: payload.assetId,
+          asset_version_id: payload.assetVersionId,
+          name: payload.name,
+          kind: payload.kind,
+          // §8.1 AssetNodeConfig 缺省：拖入即固定当前版本（selectionMode='fixed'）
+          selection_mode: 'fixed',
+          preview_url: payload.previewUrl ?? undefined,
+          content_url: payload.contentUrl,
+        })
+        flashDropHint(`已添加素材「${payload.name}」`)
+      }
+    },
+    [flashDropHint, screenToFlowPosition, store],
+  )
+
   const runtime = useEditorStore((s) => s.runtime)
   const selection = useEditorStore((s) => s.selection)
   const rfNodes = useMemo(
@@ -353,26 +413,48 @@ function CanvasWorkspace() {
 
   return (
     <div className="relative h-full">
-      <ReactFlow
-        nodes={rfNodes}
-        edges={rfEdges}
-        nodeTypes={nodeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onNodeDragStart={onNodeDragStart}
-        onNodeDragStop={onNodeDragStop}
-        onSelectionChange={onSelectionChange}
-        fitView
-        minZoom={0.2}
-        maxZoom={2.5}
-        proOptions={{ hideAttribution: true }}
-        className="bg-bg"
-      >
-        <Background gap={20} size={1} color="#2a3242" />
-        <Controls />
-        <MiniMap pannable zoomable className="!bg-surface-raised" maskColor="rgba(13,15,20,0.7)" />
-      </ReactFlow>
+      <div className="absolute inset-0 flex">
+        <AssetDrawer />
+        <div className="relative min-w-0 flex-1">
+          <ReactFlow
+            nodes={rfNodes}
+            edges={rfEdges}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onNodeDragStart={onNodeDragStart}
+            onNodeDragStop={onNodeDragStop}
+            onSelectionChange={onSelectionChange}
+            onDragOver={onDragOver}
+            onDrop={onDrop}
+            fitView
+            minZoom={0.2}
+            maxZoom={2.5}
+            proOptions={{ hideAttribution: true }}
+            className="bg-bg"
+          >
+            <Background gap={20} size={1} color="#2a3242" />
+            <Controls />
+            <MiniMap pannable zoomable className="!bg-surface-raised" maskColor="rgba(13,15,20,0.7)" />
+          </ReactFlow>
+
+          {/* 拖放反馈提示（apple-design：落点反馈；自动消失；reduced-motion 下降级为纯淡入） */}
+          <AnimatePresence>
+            {dropHint && (
+              <motion.div
+                initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
+                animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15, ease: 'easeOut' }}
+                className="pointer-events-none absolute left-1/2 top-3 z-20 -translate-x-1/2 rounded-md border border-border bg-surface-raised/95 px-3 py-1.5 text-xs text-text shadow-lg backdrop-blur"
+              >
+                {dropHint}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
 
       {/* 顶部工具条 */}
       <div className="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-1 rounded-lg border border-border bg-surface-raised/90 p-1 shadow-lg backdrop-blur">

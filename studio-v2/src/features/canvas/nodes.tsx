@@ -8,7 +8,15 @@ import { Image, Film, Workflow, Box, FileText, FolderTree, Wand2, Type } from 'l
 import type { ComponentType } from 'react'
 import { nodeRegistry, type NodeDefinition } from '@/features/canvas/registry'
 import { cn } from '@/core/utils/cn'
+import type { MediaKind } from '@/features/media/api'
 import { MediaThumbnail } from '@/features/media/components/MediaThumbnail'
+
+const MEDIA_KIND_SET: Record<string, true> = { image: true, video: true, audio: true, file: true }
+
+/** 收窄 resultUrls 的 kind 字符串 → MediaKind（未知值回落 file，避免 MediaThumbnail 按 image 渲染破图）。 */
+function toThumbKind(kind: unknown): MediaKind {
+  return typeof kind === 'string' && MEDIA_KIND_SET[kind] === true ? (kind as MediaKind) : 'file'
+}
 
 export const NODE_TYPES = ['asset', 'prompt', 'image-generation', 'video-generation', 'workflow', 'output', 'group', 'artifact'] as const
 
@@ -35,8 +43,11 @@ export function registerMvpNodes(): void {
       type: 'asset',
       label: '素材',
       ports: [{ id: 'out', label: '素材', kind: 'asset', direction: 'output' }],
-      configSchema: [{ key: 'asset_version_id', label: 'AssetVersion ID', type: 'text', placeholder: 'ast_xxx' }],
-      validate: (config) => (config.asset_version_id ? null : '请选择素材版本'),
+      configSchema: [
+        { key: 'asset_version_id', label: 'AssetVersion ID', type: 'text', placeholder: 'avr_xxx' },
+        { key: 'name', label: '素材名', type: 'text', placeholder: '拖入资产后自动填充' },
+      ],
+      validate: (config) => (config.asset_version_id ? null : '请选择素材版本（从左侧资产面板拖入）'),
     }),
     define({
       type: 'prompt',
@@ -178,13 +189,20 @@ export const StudioNodeHost = memo(function StudioNodeHost({ data, selected }: N
         )}
       </div>
       <div className="truncate border-t border-border px-3 py-1.5 text-[11px] text-text-faint">
-        {String(config.prompt ?? config.workflow ?? config.title ?? config.label ?? '') || '未配置'}
+        {String(
+          config.prompt ??
+            config.workflow ??
+            config.title ??
+            config.label ??
+            (nodeType === 'asset' ? config.name : '') ??
+            '',
+        ) || '未配置'}
       </div>
       {resultUrls.length > 0 && (
         <div className="grid grid-cols-3 gap-1 border-t border-border p-1.5">
           {resultUrls.slice(0, 6).map(({ url, kind }) => (
             <div key={url} className="aspect-square overflow-hidden rounded-md bg-bg">
-              <MediaThumbnail url={url} kind={kind === 'video' ? 'video' : 'image'} alt="生成结果" width={160} />
+              <MediaThumbnail url={url} kind={toThumbKind(kind)} alt="结果" width={160} />
             </div>
           ))}
         </div>

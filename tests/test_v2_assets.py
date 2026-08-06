@@ -404,3 +404,83 @@ def test_collection_crud_and_members(client):
     deleted = client.delete(f"/api/v2/asset-collections/{created['id']}")
     assert deleted.status_code == 200
     assert client.get("/api/v2/asset-collections").json()["collections"] == []
+
+
+# ---------- local_url 源（F12 生成结果入库） ----------
+
+
+def _ingest_module():
+    """惰性取 ingest 模块（避免 fixture 循环导入）。"""
+    from API.v2 import asset_ingest as mod
+
+    return mod
+
+
+def test_ingest_local_url_creates_asset(client, tmp_path, monkeypatch):
+    """local_url 源：本地输出文件（/assets/... 或 /output/...）复制入库创建 Asset。"""
+    out_file = tmp_path / "output" / "gen_1.png"
+    out_file.parent.mkdir(parents=True)
+    out_file.write_bytes(_png_bytes())
+    monkeypatch.setattr(_ingest_module(), "local_url_to_path", lambda url: str(out_file))
+
+    resp = client.post(
+        "/api/v2/assets/ingest",
+        json={
+            "project_id": "prj_test",
+            "sources": [{"type": "local_url", "url": "/assets/output/gen_1.png", "name": "生成图1"}],
+        },
+    )
+    assert resp.status_code == 200
+    item = resp.json()["results"][0]
+    assert item["status"] == "succeeded"
+    asset = item["asset"]
+    assert asset["kind"] == "image"
+    assert asset["name"] == "生成图1"
+    assert asset["source_type"] == "local_url"
+    assert asset["current_version"]["version_no"] == 1
+    assert asset["current_version"]["content_url"].startswith("/assets/input/")
+    # 文件确实复制到 input 目录（副本，不移动原输出）
+    files = list((tmp_path / "assets" / "input").iterdir())
+    assert len(files) == 1
+    assert out_file.exists()
+
+
+def test_ingest_local_url_rejects_missing_file(client, monkeypatch):
+    """local_url 源文件不存在：该源标记 failed，不创建资产。"""
+    monkeypatch.setattr(_ingest_module(), "local_url_to_path", lambda url: None)
+    resp = client.post(
+        "/api/v2/assets/ingest",
+        json={"sources": [{"type": "local_url", "url": "/assets/output/missing.png"}]},
+    )
+    assert resp.status_code == 200  # 批量接口按源独立成败
+    result = resp.json()["results"][0]
+    assert result["status"] == "failed"
+    assert result["error"]["code"] == "ASSET_INGEST_FAILED"
+    assert resp.json()["assets"] == []
+
+
+def test_ingest_local_url_rejects_non_local_prefix(client):
+    """local_url 源仅接受 /assets/、/output/ 前缀（非本地 URL 拒绝）。"""
+    resp = client.post(
+        "/api/v2/assets/ingest",
+        json={"sources": [{"type": "local_url", "url": "https://example.com/a.png"}]},
+    )
+    assert resp.status_code == 200
+    result = resp.json()["results"][0]
+    assert result["status"] == "failed"
+    assert result["error"]["code"] == "VALIDATION_FAILED"
+
+
+def test_ingest_local_url_video_kind(client, tmp_path, monkeypatch):
+    """local_url 源带 kind 覆盖：视频 URL 显式 kind=video 时按视频入库。"""
+    out_file = tmp_path / "output" / "gen.mp4"
+    out_file.parent.mkdir(parents=True)
+    out_file.write_bytes(b"fake-mp4-bytes")
+    monkeypatch.setattr(_ingest_module(), "local_url_to_path", lambda url: str(out_file))
+    resp = client.post(
+        "/api/v2/assets/ingest",
+        json={"sources": [{"type": "local_url", "url": "/assets/output/gen.mp4", "kind": "video"}]},
+    )
+    assert resp.status_code == 200
+    asset = resp.json()["results"][0]["asset"]
+    assert asset["kind"] == "video"

@@ -144,3 +144,55 @@ describe('Task Shelf store', () => {
     expect(useGenerationStore.getState().tasks.map((t) => t.taskId)).toEqual(['t1'])
   })
 })
+
+// ---------- 生成结果 → 资产库 ingest（F12） ----------
+
+import { taskResultToIngestSources, type ImageTaskResult, type VideoTaskResult } from '@/features/generation/api'
+
+describe('taskResultToIngestSources（F12 保存到资产库）', () => {
+  it('图片任务结果 → local_url 源列表（url/name/kind）', () => {
+    const result: ImageTaskResult = {
+      prompt: 'a cat',
+      images: ['/assets/output/a.png'],
+      image_items: [
+        { url: '/assets/output/a.png', kind: 'image', name: 'a.png' },
+        { url: '/assets/output/b.png', kind: 'image', name: 'b.png' },
+      ],
+    }
+    expect(taskResultToIngestSources(result)).toEqual([
+      { url: '/assets/output/a.png', name: 'a.png', kind: 'image' },
+      { url: '/assets/output/b.png', name: 'b.png', kind: 'image' },
+    ])
+  })
+
+  it('视频任务结果 → local_url 源列表（video kind）', () => {
+    const result: VideoTaskResult = {
+      prompt: 'a dog',
+      videos: ['/assets/output/d.mp4'],
+      video_items: [{ url: '/assets/output/d.mp4', kind: 'video', name: 'd.mp4' }],
+    }
+    expect(taskResultToIngestSources(result)).toEqual([
+      { url: '/assets/output/d.mp4', name: 'd.mp4', kind: 'video' },
+    ])
+  })
+
+  it('无结果 / 空 items 返回空数组（按钮隐藏）', () => {
+    expect(taskResultToIngestSources(null)).toEqual([])
+    expect(taskResultToIngestSources(undefined)).toEqual([])
+    expect(taskResultToIngestSources({ prompt: 'x', images: [] })).toEqual([])
+  })
+
+  it('过滤缺失 url 的脏条目', () => {
+    const result: ImageTaskResult = {
+      prompt: 'x',
+      images: [],
+      image_items: [
+        { url: '', kind: 'image' },
+        { url: '/assets/output/ok.png', kind: 'image', name: 'ok.png' },
+      ],
+    }
+    expect(taskResultToIngestSources(result)).toEqual([
+      { url: '/assets/output/ok.png', name: 'ok.png', kind: 'image' },
+    ])
+  })
+})

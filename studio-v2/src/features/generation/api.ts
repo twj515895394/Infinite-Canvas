@@ -395,3 +395,20 @@ export function useCodexStatus() {
     queryFn: () => fetchCodexStatus(),
   })
 }
+
+// ---------- 生成结果 → 资产库 ingest（F12） ----------
+
+/** 任务结果稳定引用 → ingest 源（local_url：本地输出文件入库，供 TaskShelf“保存到资产库”）。 */
+export function taskResultToIngestSources(
+  result: TaskResult | null | undefined,
+): { url: string; name?: string; kind?: string }[] {
+  if (!result) return []
+  if (isVideoResult(result)) {
+    return (result.video_items ?? [])
+      .filter((item) => typeof item.url === 'string' && item.url)
+      .map((item) => ({ url: item.url, name: item.name, kind: item.kind }))
+  }
+  return (result.image_items ?? [])
+    .filter((item) => typeof item.url === 'string' && item.url)
+    .map((item) => ({ url: item.url, name: item.name, kind: item.kind }))
+}

@@ -245,7 +245,7 @@ def _shared_folder_root(folder_id: str) -> str:
 
 
 class AssetIngestSource(BaseModel):
-    type: Literal["remote_url", "local_file", "shared_folder_file"]
+    type: Literal["remote_url", "local_file", "shared_folder_file", "local_url"]
     url: Optional[str] = None
     path: Optional[str] = None
     shared_folder_id: Optional[str] = None
@@ -260,9 +260,52 @@ class AssetIngestRequest(BaseModel):
     collection_id: Optional[str] = None
 
 
+def local_url_to_path(url: str) -> Optional[str]:
+    """本地 URL（/assets/、/output/ 前缀）→ 文件系统路径（F12 生成结果入库）。
+
+    惰性 import main.output_file_from_url：main.py 是 19000 行历史文件，禁止新增代码，
+    且 asset_ingest 被 main 挂载链导入，顶层导入会循环依赖；运行时 main 已加载，
+    函数内导入安全。测试可 monkeypatch 本函数注入临时文件路径。
+    """
+    text = str(url or "").strip()
+    if not text.startswith(("/assets/", "/output/")):
+        return None
+    from main import output_file_from_url  # noqa: PLC0415 惰性导入（避免循环依赖）
+
+    return output_file_from_url(text) or None
+
+
 def resolve_source(src: AssetIngestSource) -> Tuple[bytes, str, str, Dict[str, Any]]:
     """把 ingest 源解析为 (content, filename, content_type, source_metadata)。"""
     stype = src.type
+    if stype == "local_url":
+        if not src.url:
+            raise V2Error(
+                code=ErrorCode.VALIDATION_FAILED,
+                status=400,
+                title="Missing URL",
+                detail="local_url 源必须提供 url",
+            )
+        text = str(src.url).strip()
+        if not text.startswith(("/assets/", "/output/")):
+            raise V2Error(
+                code=ErrorCode.VALIDATION_FAILED,
+                status=400,
+                title="Invalid local URL",
+                detail="local_url 仅支持 /assets/ 或 /output/ 前缀的本地输出地址",
+            )
+        path = local_url_to_path(text)
+        if not path or not os.path.isfile(path):
+            raise V2Error(
+                code=ErrorCode.ASSET_INGEST_FAILED,
+                status=404,
+                title="Local file not found",
+                detail=f"本地输出文件不存在：{text}",
+            )
+        with open(path, "rb") as f:
+            content = f.read()
+        filename = os.path.basename(path)
+        return content, filename, mimetypes.guess_type(filename)[0] or "", {"url": src.url, "local_path": path}
     if stype == "remote_url":
         if not src.url:
             raise V2Error(

@@ -384,3 +384,110 @@ describe('ingestUpload（XHR multipart）', () => {
     expect(asset.lifecycle_status).toBe('active')
   })
 })
+
+// ---------- 拖拽 payload（F12 资产拖入画布） ----------
+
+import { ASSET_DRAG_MIME, assetToDragPayload, isIngestAllSucceeded, isIngestResult, parseAssetDragPayload, type AssetDragPayload } from '@/features/assets/api'
+
+describe('parseAssetDragPayload（F12 拖入画布）', () => {
+  const valid: AssetDragPayload = {
+    assetId: 'ast_1',
+    assetVersionId: 'avr_1',
+    name: '参考图',
+    kind: 'image',
+    status: 'active',
+    previewUrl: '/api/media-preview?url=%2Fassets%2Finput%2Fa.png',
+    contentUrl: '/assets/input/a.png',
+  }
+
+  it('合法 payload 完整解析（含展示缓存字段）', () => {
+    const parsed = parseAssetDragPayload(JSON.stringify(valid))
+    expect(parsed).toEqual(valid)
+  })
+
+  it('缺失 assetVersionId 或 contentUrl 返回 null（画布 drop 拒绝）', () => {
+    expect(parseAssetDragPayload(JSON.stringify({ ...valid, assetVersionId: '' }))).toBeNull()
+    expect(parseAssetDragPayload(JSON.stringify({ ...valid, contentUrl: '' }))).toBeNull()
+  })
+
+  it('未知 kind 回落 image、未知 status 回落 active（守卫收窄）', () => {
+    const parsed = parseAssetDragPayload(
+      JSON.stringify({ ...valid, kind: 'weird', status: 'zzz' }),
+    )
+    expect(parsed).toMatchObject({ kind: 'image', status: 'active' })
+  })
+
+  it('非 JSON / 非对象返回 null', () => {
+    expect(parseAssetDragPayload('not-json')).toBeNull()
+    expect(parseAssetDragPayload('42')).toBeNull()
+    expect(parseAssetDragPayload(null)).toBeNull()
+    expect(parseAssetDragPayload(undefined)).toBeNull()
+  })
+
+  it('trashed 状态保留（画布 drop 侧拒绝拖入）', () => {
+    const parsed = parseAssetDragPayload(JSON.stringify({ ...valid, status: 'trashed' }))
+    expect(parsed?.status).toBe('trashed')
+  })
+
+  it('MIME 常量稳定（跨 AssetDrawer 与 CanvasPage 契约）', () => {
+    expect(ASSET_DRAG_MIME).toBe('application/x-studio-v2-asset')
+    const payload: AssetDragPayload = valid
+    expect(typeof JSON.stringify(payload)).toBe('string')
+  })
+
+  it('assetToDragPayload：active 资产带当前版本生成 payload', () => {
+    const asset = normalizeAsset({
+      ...rawAsset,
+      current_version: { id: 'avr_9', content_url: '/assets/input/a.png', preview_url: null },
+    })
+    expect(assetToDragPayload(asset)).toMatchObject({
+      assetId: asset.id,
+      assetVersionId: 'avr_9',
+      kind: 'image',
+      status: 'active',
+      contentUrl: '/assets/input/a.png',
+    })
+  })
+
+  it('assetToDragPayload：回收站资产返回 null（禁拖）', () => {
+    const trashed = normalizeAsset({ ...rawAsset, lifecycle_status: 'trashed', current_version: null })
+    expect(assetToDragPayload(trashed)).toBeNull()
+  })
+
+  it('assetToDragPayload：无当前版本返回 null', () => {
+    const noVersion = normalizeAsset({ ...rawAsset, current_version: null })
+    expect(assetToDragPayload(noVersion)).toBeNull()
+  })
+})
+
+// ---------- ingest 批量结果判定（F12 保存到资产库） ----------
+
+describe('isIngestAllSucceeded / isIngestResult（F12 保存判定）', () => {
+  it('全部 succeeded 才算成功（TaskShelf 标记已保存）', () => {
+    expect(isIngestAllSucceeded([{ source_index: 0, status: 'succeeded' }])).toBe(true)
+    expect(
+      isIngestAllSucceeded([
+        { source_index: 0, status: 'succeeded' },
+        { source_index: 1, status: 'succeeded' },
+      ]),
+    ).toBe(true)
+  })
+
+  it('任一 failed / 空数组 / 非数组返回 false（保留重试，避免假成功）', () => {
+    expect(
+      isIngestAllSucceeded([{ source_index: 0, status: 'succeeded' }, { source_index: 1, status: 'failed' }]),
+    ).toBe(false)
+    expect(isIngestAllSucceeded([{ source_index: 0, status: 'failed' }])).toBe(false)
+    expect(isIngestAllSucceeded([])).toBe(false)
+    expect(isIngestAllSucceeded(null)).toBe(false)
+    expect(isIngestAllSucceeded(undefined)).toBe(false)
+  })
+
+  it('isIngestResult 只接受 {status} 形状元素', () => {
+    expect(isIngestResult({ status: 'succeeded' })).toBe(true)
+    expect(isIngestResult({ status: 'failed' })).toBe(true)
+    expect(isIngestResult({ status: 'weird' })).toBe(false)
+    expect(isIngestResult('x')).toBe(false)
+    expect(isIngestResult(null)).toBe(false)
+  })
+})

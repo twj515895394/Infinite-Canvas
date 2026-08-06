@@ -5,10 +5,11 @@
  * - 轮询驱动：1.5s 刷新非终态任务（MVP §7.2 轮询方案），挂载时从后端恢复近期任务；
  * - 展开动效：临界阻尼 spring（bounce=0），reduced-motion 下降级为直接切换。
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import {
   Ban,
+  BookmarkPlus,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -27,12 +28,14 @@ import {
   submitComfyTask,
   submitImageTask,
   submitVideoTask,
+  taskResultToIngestSources,
   TASK_STATUS_LABELS,
   useGenerationTaskList,
 } from '@/features/generation/api'
 import type { ComfySubmitPayload, GenerationTaskStatus, ImageSubmitPayload, VideoSubmitPayload } from '@/features/generation/api'
 import { refreshActiveTasks, useGenerationStore } from '@/features/generation/store'
 import type { TaskEntry } from '@/features/generation/store'
+import { isAssetKind, isIngestAllSucceeded, isIngestResult, useIngest } from '@/features/assets/api'
 
 const STATUS_ICONS: Record<GenerationTaskStatus, typeof Clock> = {
   queued: Clock,
@@ -72,11 +75,17 @@ function TaskRow({
   onCancel,
   onRetry,
   onRemove,
+  onSaveToLibrary,
+  saving,
+  saved,
 }: {
   entry: TaskEntry
   onCancel: (entry: TaskEntry) => void
   onRetry: (entry: TaskEntry) => void
   onRemove: (entry: TaskEntry) => void
+  onSaveToLibrary: (entry: TaskEntry) => void
+  saving: boolean
+  saved: boolean
 }) {
   const active = isTaskActive(entry.status)
   const spinning = entry.status === 'running' || entry.status === 'jimeng_pending'
@@ -97,6 +106,18 @@ function TaskRow({
       <span className={cn('shrink-0 rounded px-1.5 py-0.5 text-[10px]', STATUS_CHIP[entry.status])}>
         {TASK_STATUS_LABELS[entry.status]}
       </span>
+      {/* 保存到资产库（F12）：成功任务 + 有稳定引用可入库时显示 */}
+      {!active && entry.status === 'succeeded' && entry.result && (
+        <IconButton
+          label={saved ? '已保存到资产库' : '保存到资产库'}
+          size="sm"
+          disabled={saving || saved}
+          onClick={() => onSaveToLibrary(entry)}
+          className={cn(saved && 'text-success')}
+        >
+          {saving ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <BookmarkPlus size={13} aria-hidden />}
+        </IconButton>
+      )}
       {active && (
         <IconButton label="取消任务" size="sm" onClick={() => onCancel(entry)}>
           <X size={13} aria-hidden />
@@ -119,8 +140,61 @@ function TaskRow({
 export function TaskShelf() {
   const tasks = useGenerationStore((s) => s.tasks)
   const [expanded, setExpanded] = useState(false)
+  const [savingTaskId, setSavingTaskId] = useState<string | null>(null)
+  const [savedTaskIds, setSavedTaskIds] = useState<Set<string>>(new Set())
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const saveErrorTimer = useRef<number | null>(null)
   const reduceMotion = useReducedMotion()
   const { data: recent } = useGenerationTaskList(30)
+  const ingest = useIngest()
+
+  /* 保存到资产库（F12）：任务成功 → 本地输出文件入库（local_url 源）。
+   * ingest 是按源独立成败的批量接口（HTTP 200 + results[].status），必须全部 succeeded 才算成功；
+   * 部分失败时保留按钮可重试并展示失败详情（避免假成功）。 */
+  const saveToLibrary = (entry: TaskEntry) => {
+    if (!entry.result || savingTaskId) return
+    const sources = taskResultToIngestSources(entry.result)
+    if (sources.length === 0) return
+    setSavingTaskId(entry.taskId)
+    ingest.mutate(
+      {
+        sources: sources.map((s) => ({
+          type: 'local_url' as const,
+          url: s.url,
+          name: s.name,
+          kind: isAssetKind(s.kind) ? s.kind : undefined,
+        })),
+        tags: [],
+      },
+      {
+        onSuccess: (data) => {
+          const results = Array.isArray(data.results) ? data.results : []
+          if (isIngestAllSucceeded(results)) {
+            setSavedTaskIds((prev) => new Set(prev).add(entry.taskId))
+            return
+          }
+          // 单源失败（如输出文件已删除）：提示首个失败详情，按钮保留可重试
+          const failed = results.find((r) => !(isIngestResult(r) && r.status === 'succeeded'))
+          const detail =
+            isIngestResult(failed) &&
+            failed.error &&
+            typeof failed.error === 'object' &&
+            'detail' in failed.error &&
+            typeof failed.error.detail === 'string' &&
+            failed.error.detail
+              ? failed.error.detail
+              : '部分输出保存失败'
+          setSaveError(detail)
+          if (saveErrorTimer.current) window.clearTimeout(saveErrorTimer.current)
+          saveErrorTimer.current = window.setTimeout(() => setSaveError(null), 4000)
+        },
+        onError: () => {
+          /* 网络/接口错误：保留按钮可重试（错误静默，用户可再次点击） */
+        },
+        onSettled: () => setSavingTaskId(null),
+      },
+    )
+  }
 
   /* 挂载/刷新时恢复后端近期任务（去重，保留本地 nodeId 关联） */
   useEffect(() => {
@@ -194,6 +268,12 @@ export function TaskShelf() {
 
   const panel = (
     <div className="max-h-[38vh] overflow-y-auto border-t border-border bg-surface-overlay backdrop-blur">
+      {saveError && (
+        <div className="flex items-center gap-2 border-b border-danger/30 bg-danger/10 px-4 py-1.5 text-[11px] text-danger">
+          <XCircle size={12} className="shrink-0" aria-hidden />
+          <span className="truncate">保存到资产库失败：{saveError}</span>
+        </div>
+      )}
       {tasks.length === 0 ? (
         <div className="px-4 py-6 text-center text-xs text-text-faint">
           暂无任务 — 在画布上选择「图片生成」节点并点击生成
@@ -206,6 +286,9 @@ export function TaskShelf() {
             onCancel={(e) => void cancel(e)}
             onRetry={(e) => void retry(e)}
             onRemove={(e) => useGenerationStore.getState().remove(e.taskId)}
+            onSaveToLibrary={(e) => saveToLibrary(e)}
+            saving={savingTaskId === t.taskId}
+            saved={savedTaskIds.has(t.taskId)}
           />
         ))
       )}

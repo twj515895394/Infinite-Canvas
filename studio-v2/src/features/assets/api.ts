@@ -16,7 +16,7 @@ export type AssetKind = 'image' | 'video' | 'audio' | 'document' | 'workflow' | 
 /** 'purged' 仅出现在 DELETE purge 响应中，列表不会返回。 */
 export type AssetStatus = 'active' | 'archived' | 'trashed' | 'purged'
 export type AssetSort = 'updated_at_desc' | 'updated_at_asc' | 'created_at_desc' | 'name_asc' | 'name_desc'
-export type IngestSourceType = 'remote_url' | 'local_file' | 'shared_folder_file'
+export type IngestSourceType = 'remote_url' | 'local_file' | 'shared_folder_file' | 'local_url'
 
 export interface AssetVersion {
   id: string
@@ -124,6 +124,19 @@ export interface IngestSourceResult {
   error?: { code?: string; title?: string; detail?: string }
 }
 
+/** 守卫：未知值是否为 ingest 结果元素（{status} 形状）。 */
+export function isIngestResult(raw: unknown): raw is IngestSourceResult {
+  if (typeof raw !== 'object' || raw === null || !('status' in raw)) return false
+  const status = (raw as Record<string, unknown>).status
+  return status === 'succeeded' || status === 'failed'
+}
+
+/** 批量 ingest 是否全部成功：非空且每个元素 status === 'succeeded'（TaskShelf 保存判定）。 */
+export function isIngestAllSucceeded(results: unknown[] | undefined | null): boolean {
+  if (!Array.isArray(results) || results.length === 0) return false
+  return results.every((r) => isIngestResult(r) && r.status === 'succeeded')
+}
+
 // ---------- 展示常量 ----------
 
 export const KIND_LABELS: Record<AssetKind, string> = {
@@ -227,6 +240,66 @@ export function normalizeAsset(raw: unknown): AssetSummary {
     created_at: asNullableNumber(record.created_at) ?? 0,
     updated_at: asNullableNumber(record.updated_at) ?? 0,
     revision: asNullableNumber(record.revision) ?? 0,
+  }
+}
+
+/**
+ * 资产拖入画布的 dataTransfer payload（F12）。
+ * 只携带引用（asset_id + asset_version_id）与展示缓存（name/kind/preview_url），
+ * 不复制二进制；画布节点 config 以 asset_version_id 为唯一硬引用（design doc §8.1）。
+ */
+export interface AssetDragPayload {
+  assetId: string
+  assetVersionId: string
+  name: string
+  kind: AssetKind
+  /** trashed 资产禁止拖入画布（验收：回收站资产拖入被拒绝或明确提示）。 */
+  status: AssetStatus
+  previewUrl: string | null
+  contentUrl: string
+}
+
+/** dataTransfer MIME：自定义类型（跨页面拖拽），避免与浏览器默认拖拽冲突。 */
+export const ASSET_DRAG_MIME = 'application/x-studio-v2-asset'
+
+/** 资产 → 拖拽 payload（F12）：只带引用 + 展示缓存；回收站或无版本资产返回 null（禁拖）。 */
+export function assetToDragPayload(asset: AssetSummary): AssetDragPayload | null {
+  if (asset.lifecycle_status === 'trashed' || !asset.current_version) return null
+  return {
+    assetId: asset.id,
+    assetVersionId: asset.current_version.id,
+    name: asset.name,
+    kind: asset.kind,
+    status: asset.lifecycle_status,
+    previewUrl: asset.current_version.preview_url,
+    contentUrl: asset.current_version.content_url,
+  }
+}
+
+/** 从 dataTransfer.getData 解析拖拽 payload；非法/缺失版本返回 null（画布 drop 拒绝）。 */
+export function parseAssetDragPayload(raw: string | null | undefined): AssetDragPayload | null {
+  if (typeof raw !== 'string' || !raw) return null
+  let record: unknown
+  try {
+    record = JSON.parse(raw)
+  } catch {
+    return null
+  }
+  if (typeof record !== 'object' || record === null) return null
+  const r = record as Record<string, unknown>
+  const assetId = asString(r.assetId)
+  const assetVersionId = asString(r.assetVersionId)
+  const contentUrl = asString(r.contentUrl)
+  if (!assetId || !assetVersionId || !contentUrl) return null
+  const statusRaw = asString(r.status, 'active')
+  return {
+    assetId,
+    assetVersionId,
+    name: asString(r.name, '未命名'),
+    kind: isAssetKind(r.kind) ? r.kind : 'image',
+    status: STATUS_SET[statusRaw] === true ? (statusRaw as AssetStatus) : 'active',
+    previewUrl: typeof r.previewUrl === 'string' && r.previewUrl ? r.previewUrl : null,
+    contentUrl,
   }
 }
 
