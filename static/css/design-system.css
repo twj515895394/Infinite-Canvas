@@ -1319,4 +1319,83 @@ html.studio-theme-dark .field-frame:focus-within {
     animation: ds-shimmer 1.5s infinite linear !important;
 }
 
+/* ==================================================================
+   § 7  CANVAS CURSOR GUARANTEE (终极光标防消失防护层)
+   ================================================================== */
+/* 避免指针进入画布空白区、SVG 连线层、网格背景层时被废弃或设置为 none 的致命问题 */
+#shell,
+#board,
+#world,
+.shell,
+.board,
+.world,
+.world > svg.links,
+.world > svg.links *,
+#links,
+#linkControls,
+#dropOverlay,
+#selectionBox,
+#selectionHub {
+    cursor: default !important;
+}
+
+/* 节点拖拽 / 平移状态 */
+body.canvas-board-pan,
+body.canvas-board-pan #shell,
+body.canvas-board-pan #board,
+body.canvas-board-pan #world,
+body.smart-node-drag,
+body.smart-node-drag #shell,
+body.smart-node-drag #world,
+.shell.panning,
+.shell.panning *,
+.board:active,
+.shell:active {
+    cursor: move !important;
+}
+
+/* 交互型元素独立保留正常指针形态 */
+.node,
+.image-node,
+.composer-card,
+.panel,
+.topbar,
+.library,
+.canvas-item,
+.ws-card,
+.block,
+.provider-card {
+    cursor: default !important;
+}
+
+.node-head,
+.smart-group-member-grab,
+.resize-handle {
+    cursor: move !important;
+}
+
+button,
+a,
+select,
+input[type="button"],
+input[type="submit"],
+.tool-btn,
+.action-btn,
+.ws-icon-btn,
+.ws-primary-btn,
+.smart-back,
+.smart-log-toggle,
+.smart-shortcut-toggle,
+.smart-workflow-toggle {
+    cursor: pointer !important;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="search"],
+textarea,
+[contenteditable="true"] {
+    cursor: text !important;
+}
+
 /* END */
