@@ -2,8 +2,8 @@
  * Feature API 层基础客户端。
  * 契约：所有 /api/v2 错误统一为 application/problem+json（ApiProblem）。
  * 供应商字段不得扩散到通用组件——组件只消费本层返回的稳定 DTO。
+ * FormData body 时不设 Content-Type（由浏览器带 multipart boundary）。
  */
-
 export interface ApiProblem {
   type?: string
   title: string
@@ -29,17 +29,28 @@ export class ApiError extends Error {
 
 const REQUEST_TIMEOUT_MS = 30_000
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export interface ApiFetchOptions extends RequestInit {
+  /** 覆盖默认 30s 超时（Agent test 等长请求）。 */
+  timeoutMs?: number
+}
+
+export async function apiFetch<T>(path: string, init?: ApiFetchOptions): Promise<T> {
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const timeoutMs = init?.timeoutMs ?? REQUEST_TIMEOUT_MS
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+
+  const isFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData
+  const headers = new Headers(init?.headers)
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  const { timeoutMs: _timeoutIgnored, ...rest } = init ?? {}
   let response: Response
   try {
     response = await fetch(path, {
-      ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        ...init?.headers,
-      },
+      ...rest,
+      headers,
       signal: controller.signal,
     })
   } finally {

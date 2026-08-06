@@ -7,7 +7,8 @@ import ProjectsPage from '@/features/projects/ProjectsPage'
 import CanvasPage from '@/features/canvas/CanvasPage'
 import SettingsPage from '@/features/settings/SettingsPage'
 import AssetsPage from '@/features/assets/AssetsPage'
-import { ProjectDetailPage, AgentsPage } from '@/routes/pages'
+import AgentsPage from '@/features/agents/AgentsPage'
+import { ProjectDetailPage } from '@/routes/pages'
 
 export default function App() {
   return (

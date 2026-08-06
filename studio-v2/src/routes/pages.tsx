@@ -46,11 +46,4 @@ export function CanvasPage() {
   )
 }
 
-export function AgentsPage() {
-  return (
-    <PlaceholderPage
-      title="Agent Center"
-      description="Agents / Skills / Runtimes / Tasks 管理将在此实现（切片 20）。"
-    />
-  )
-}
+// AgentsPage 已迁至 features/agents/AgentsPage（切片 20 F13）
