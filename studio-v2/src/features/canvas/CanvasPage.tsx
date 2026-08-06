@@ -20,9 +20,12 @@ import {
   type EdgeChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Plus, Undo2, Redo2, Trash2, Save, Loader2, Bot } from 'lucide-react'
+import { Plus, Undo2, Redo2, Trash2, Save, Bot } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
+import { ErrorState, LoadingState } from '@/components/ui/page-state'
+import { errorMessage } from '@/core/api/errors'
+import { toastError } from '@/core/feedback/queryFeedback'
 import { useEditorStore, type CanvasMeta } from '@/features/canvas/store'
 import { nodeRegistry, type InspectorField } from '@/features/canvas/registry'
 import { registerMvpNodes, nodeTypes, NODE_TYPES } from '@/features/canvas/nodes'
@@ -203,7 +206,7 @@ function CanvasWorkspace() {
         setLoading(false)
       })
       .catch((err) => {
-        setLoadError(String(err))
+        setLoadError(errorMessage(err, '画布加载失败'))
         setLoading(false)
       })
     return () => store.getState().reset()
@@ -230,6 +233,7 @@ function CanvasWorkspace() {
           if (isRevisionConflict(err)) {
             setConflict(true)
           } else {
+            toastError(err, '画布保存失败', 'canvas-save')
             console.error('save failed', err)
           }
         })
@@ -416,19 +420,25 @@ function CanvasWorkspace() {
   const rfEdges = useMemo(() => edges.map(toRfEdge), [edges])
 
   if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center gap-2 text-sm text-text-muted">
-        <Loader2 size={16} className="animate-spin" aria-hidden /> 加载画布…
-      </div>
-    )
+    return <LoadingState label="加载画布…" className="h-full" />
   }
   if (loadError) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3">
-        <p className="text-sm text-danger">画布加载失败：{loadError}</p>
-        <Button variant="ghost" size="sm" onClick={() => navigate('/projects')}>
-          返回项目
-        </Button>
+      <div className="flex h-full items-center justify-center p-6">
+        <ErrorState
+          title="画布加载失败"
+          hint={loadError}
+          action={
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => window.location.reload()}>
+                重试
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => navigate('/projects')}>
+                返回项目
+              </Button>
+            </div>
+          }
+        />
       </div>
     )
   }

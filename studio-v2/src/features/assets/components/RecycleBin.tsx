@@ -9,6 +9,7 @@ import { Loader2, RotateCcw, Trash2, Trash } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState, LoadingState } from '@/components/ui/page-state'
 import { formatDate, KIND_LABELS, useAssets, usePurgeAsset, useRestoreAsset, type AssetSummary } from '@/features/assets/api'
 import { AssetThumbRow } from './AssetCard'
 
@@ -26,21 +27,16 @@ export function RecycleBin() {
   const assets = data?.pages.flatMap((page) => page.items) ?? []
 
   if (isLoading) {
-    return (
-      <div className="flex flex-1 items-center justify-center gap-2 py-16 text-sm text-text-muted">
-        <Loader2 size={15} className="animate-spin" aria-hidden /> 加载回收站…
-      </div>
-    )
+    return <LoadingState label="加载回收站…" className="flex-1 py-16" />
   }
 
   if (isError) {
     return (
-      <div className="flex flex-1 flex-col items-center gap-3 py-16 text-center">
-        <p className="text-sm text-danger">回收站加载失败</p>
-        <Button variant="ghost" size="sm" onClick={() => refetch()}>
-          重试
-        </Button>
-      </div>
+      <ErrorState
+        title="回收站加载失败"
+        className="flex-1 py-8"
+        onRetry={() => void refetch()}
+      />
     )
   }
 

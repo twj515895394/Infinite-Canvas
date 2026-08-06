@@ -10,6 +10,7 @@ import { Button, IconButton } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { ChipGroup, SelectField } from '@/components/ui/form'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState, LoadingState } from '@/components/ui/page-state'
 import { cn } from '@/core/utils/cn'
 import { AssetGridCard, AssetListRow } from '@/features/assets/components/AssetCard'
 import { CollectionBar } from '@/features/assets/components/CollectionBar'
@@ -172,20 +173,13 @@ export default function AssetsPage() {
           </div>
 
           {query.isLoading ? (
-            <div className="flex flex-1 items-center justify-center gap-2 text-sm text-text-muted">
-              <Loader2 size={15} className="animate-spin" aria-hidden /> 加载资产…
-            </div>
+            <LoadingState label="加载资产…" className="flex-1" />
           ) : query.isError ? (
-            <EmptyState
-              icon={Inbox}
+            <ErrorState
               title="资产列表加载失败"
               hint="请检查后端服务是否可用后重试。"
               className="flex-1"
-              action={
-                <Button variant="ghost" size="sm" onClick={() => query.refetch()}>
-                  重试
-                </Button>
-              }
+              onRetry={() => void query.refetch()}
             />
           ) : showEmpty ? (
             hasActiveFilter ? (

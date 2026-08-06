@@ -4,9 +4,11 @@
  * 新建时生成合法 id；RunningHub/Midjourney 专项配置不出现（MVP §6.7）。
  */
 import { useState } from 'react'
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Trash2, Server } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/core/utils/cn'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LoadingState } from '@/components/ui/page-state'
 import { useProviders, useSaveProviders, type Provider } from '@/features/settings/api'
 import { ProviderFormDialog, type ProviderDraft } from '@/features/settings/ProviderFormDialog'
 
@@ -84,13 +86,18 @@ export function ProviderSection() {
       {actionError && <p className="text-xs text-danger">{actionError}</p>}
 
       {isLoading ? (
-        <div className="flex h-16 items-center justify-center text-text-faint">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-        </div>
+        <LoadingState label="加载 Provider…" className="h-16" />
       ) : providers.length === 0 ? (
-        <p className="rounded-md border border-dashed border-border p-4 text-center text-xs text-text-faint">
-          暂无 Provider，点击「新增」添加第一个。
-        </p>
+        <EmptyState
+          icon={Server}
+          title="暂无 Provider"
+          hint="点击「新增」添加第一个 API 平台，用于图片/视频生成。"
+          action={
+            <Button size="sm" onClick={() => { setEditing(null); setDialogOpen(true) }}>
+              <Plus className="size-3.5" aria-hidden /> 新增
+            </Button>
+          }
+        />
       ) : (
         <ul className="flex flex-col gap-1.5">
           {providers.map((p) => (

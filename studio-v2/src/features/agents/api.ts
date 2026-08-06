@@ -6,7 +6,7 @@
  * - Skill ZIP import 用 FormData（字段 file），不走 JSON Content-Type。
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { api, ApiError, apiFetch } from '@/core/api/client'
+import { api, apiFetch } from '@/core/api/client'
 import { isTaskActive } from '@/features/agents/status'
 
 // 展示常量从 status.ts 再导出，保持既有 import 路径兼容
@@ -509,12 +509,8 @@ export function formatDate(ts: number | null | undefined): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
-/** ApiError / 未知错误 → 可读文案。 */
-export function errorMessage(err: unknown, fallback = '操作失败'): string {
-  if (err instanceof ApiError) return err.problem.detail || err.problem.title || fallback
-  if (err instanceof Error && err.message) return err.message
-  return fallback
-}
+/** 兼容既有 `from '@/features/agents/api'` 调用方；实现见 `@/core/api/errors`。 */
+export { errorMessage } from '@/core/api/errors'
 
 // ---------- Query Keys ----------
 

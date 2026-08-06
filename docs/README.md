@@ -200,21 +200,20 @@ Midjourney
 | Event Hub 完整设计 | 已完成 v1.0 | 后续增强参考 |
 | RunningHub / Midjourney 新 UI | 延后 | 后续批次 |
 | 对话 / 提示词库新 UI | 延后 | 后续批次 |
-| 开发计划与任务拆分 | 下一步 | 立即制定 |
+| 开发计划与任务拆分 | 已完成（`.scratch/studio-v2-mvp/`） | 实施依据 |
+| 第一版使用指南（启动/备份/回退/托管） | 已完成 | [`studio-v2-first-release-guide.md`](./studio-v2-first-release-guide.md) |
 
 ---
 
-## 6. 下一步
+## 6. 第一版发布
 
-产品与架构范围已经完成收口，不再继续扩展专业领域设计。
+实施阶段 1–4 功能已落地；阶段 5 稳定性见：
 
-下一份文档应为：
+- 使用与冒烟：[`studio-v2-first-release-guide.md`](./studio-v2-first-release-guide.md)
+- 验收清单：个人版 MVP 基线 §14
+- 切片：`.scratch/studio-v2-mvp/issues/24-f16-stability-polish.md`、`25-f17-release-acceptance.md`
 
-```text
-Studio V2 个人版 MVP 开发计划、任务拆分与里程碑
-```
-
-开发计划必须按以下阶段组织：
+开发阶段回顾：
 
 1. 新 UI 工程骨架、项目和画布闭环。
 2. 核心旧功能逐项接入。

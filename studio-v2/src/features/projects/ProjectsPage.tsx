@@ -5,9 +5,13 @@
  */
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Pencil, Trash2, RotateCcw, FolderOpen, Archive, Loader2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, RotateCcw, FolderOpen, Archive } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState, LoadingState } from '@/components/ui/page-state'
+import { errorMessage } from '@/core/api/errors'
+import { toastError } from '@/core/feedback/queryFeedback'
 import {
   useProjects,
   useCreateProject,
@@ -77,37 +81,48 @@ export default function ProjectsPage() {
 
   const handleCreate = (name: string) => {
     setDialog(null)
-    createProject.mutate(name, { onError: (err) => setError(String(err)) })
+    createProject.mutate(name, {
+      onError: (err) => {
+        const msg = errorMessage(err, '创建项目失败')
+        setError(msg)
+        toastError(err, '创建项目失败')
+      },
+    })
   }
 
   const handleRename = (project: Project) => (name: string) => {
     setDialog(null)
     renameProject.mutate(
       { id: project.id, name, base_revision: project.revision },
-      { onError: (err) => setError(String(err)) },
+      {
+        onError: (err) => {
+          const msg = errorMessage(err, '重命名失败')
+          setError(msg)
+          toastError(err, '重命名失败')
+        },
+      },
     )
   }
 
   const handleArchive = (project: Project) => {
     setDialog(null)
-    archiveProject.mutate(project.id, { onError: (err) => setError(String(err)) })
+    archiveProject.mutate(project.id, {
+      onError: (err) => {
+        const msg = errorMessage(err, '归档失败')
+        setError(msg)
+        toastError(err, '归档失败')
+      },
+    })
   }
 
   if (isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center gap-2 text-sm text-text-muted">
-        <Loader2 size={16} className="animate-spin" aria-hidden /> 加载项目…
-      </div>
-    )
+    return <LoadingState label="加载项目…" className="h-full" />
   }
 
   if (isError) {
     return (
-      <div className="flex h-full flex-col items-center justify-center gap-3 text-center">
-        <p className="text-sm text-danger">项目列表加载失败</p>
-        <Button variant="ghost" size="sm" onClick={() => refetch()}>
-          重试
-        </Button>
+      <div className="flex h-full items-center justify-center p-6">
+        <ErrorState title="项目列表加载失败" onRetry={() => void refetch()} />
       </div>
     )
   }
@@ -169,12 +184,17 @@ export default function ProjectsPage() {
       )}
 
       {active.length === 0 && archived.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <p className="text-sm text-text-muted">还没有项目，创建第一个开始创作</p>
-          <Button size="sm" onClick={() => setDialog({ kind: 'create' })}>
-            新建项目
-          </Button>
-        </div>
+        <EmptyState
+          icon={FolderOpen}
+          title="还没有项目"
+          hint="创建第一个项目，开始组织画布与生成任务。"
+          className="py-16"
+          action={
+            <Button size="sm" variant="primary" onClick={() => setDialog({ kind: 'create' })}>
+              <Plus size={14} aria-hidden /> 新建项目
+            </Button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {active.map((p) => (

@@ -4,11 +4,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import AppShell from '@/app/AppShell'
 import ProjectsPage from '@/features/projects/ProjectsPage'
+import ProjectDetailPage from '@/features/projects/ProjectDetailPage'
 import CanvasPage from '@/features/canvas/CanvasPage'
 import SettingsPage from '@/features/settings/SettingsPage'
 import AssetsPage from '@/features/assets/AssetsPage'
 import AgentsPage from '@/features/agents/AgentsPage'
-import { ProjectDetailPage } from '@/routes/pages'
 
 export default function App() {
   return (

@@ -3,9 +3,10 @@
  * 修改后上传与生成立即写入新目录（后端 save_storage_settings 即时生效）。
  */
 import { useState } from 'react'
-import { Check, Loader2 } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { STORAGE_DIR_LABELS, useStorageSettings, useUpdateStorageSettings } from '@/features/settings/api'
+import { LoadingState } from '@/components/ui/page-state'
 
 export function StorageSection() {
   const { data, isLoading } = useStorageSettings()
@@ -37,9 +38,7 @@ export function StorageSection() {
         <p className="text-xs text-text-muted">修改后立即生效：上传与生成结果写入新目录（旧文件保留原位置）。</p>
       </div>
       {isLoading ? (
-        <div className="flex h-12 items-center justify-center text-text-faint">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-        </div>
+        <LoadingState label="加载存储设置…" className="h-12" />
       ) : (
         <ul className="flex flex-col gap-1.5">
           {Object.keys(STORAGE_DIR_LABELS).map((key) => (
