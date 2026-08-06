@@ -40,16 +40,19 @@ body {
     border-radius: 6px !important;
 }
 
-/* 强制修复 Windows / WebKit 缩放及 Canvas 模式下 cursor: grab/grabbing 引发的鼠标指针隐形 BUG */
+/* 强制修复画布空白处鼠标指针消失的 BUG — 使用标准的渐进增强 Fallback 声明 */
+html,
+body,
 .shell,
 .board,
 .world,
 .stage {
-    cursor: default;
+    cursor: default !important;
+    cursor: move !important;
+    cursor: -webkit-grab !important;
+    cursor: grab !important;
 }
 
-.shell,
-.board,
 .minimax-top,
 .minimax-track,
 .minimax-lane,
@@ -57,7 +60,10 @@ body {
 .minimax-material-card,
 .minimax-wb-toolbar,
 .smart-group-member-grab {
-    cursor: grab, move, default !important;
+    cursor: default !important;
+    cursor: move !important;
+    cursor: -webkit-grab !important;
+    cursor: grab !important;
 }
 
 .shell.panning,
@@ -68,7 +74,10 @@ body.smart-node-drag,
 body.smart-node-drag *,
 body.canvas-board-pan,
 body.canvas-board-pan * {
-    cursor: grabbing, move, default !important;
+    cursor: default !important;
+    cursor: move !important;
+    cursor: -webkit-grabbing !important;
+    cursor: grabbing !important;
 }
 
 /* Scrollbars — slimmer + less aggressive */
