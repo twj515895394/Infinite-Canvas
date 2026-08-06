@@ -14,16 +14,20 @@
   --color-surface: #151922;
   --color-surface-raised: #1c2230;
   --color-surface-overlay: rgba(21, 25, 34, 0.85);
+  --color-surface-subtle: #0a0c10;
   --color-border: #2a3242;
   --color-border-strong: #3a4560;
   --color-text: #e6e9f0;
   --color-text-muted: #9aa4b8;
   --color-text-faint: #6b7488;
+  --color-text-tertiary: #545c6e;
   --color-accent: #5b8cff;
   --color-accent-strong: #4a7dff;
   --color-success: #3ecf8e;
   --color-warning: #f5b94c;
   --color-danger: #f2645a;
+  /* 媒体底色（视频/图片未加载时的占位底，不随主题反转） */
+  --color-ink: #000000;
 
   /* 动效时长（高频 ≤180ms） */
   --duration-fast: 120ms;
@@ -41,16 +45,19 @@
   --color-surface: oklch(0.985 0.003 255);
   --color-surface-raised: #ffffff;
   --color-surface-overlay: rgba(255, 255, 255, 0.85);
+  --color-surface-subtle: oklch(0.92 0.006 255);
   --color-border: oklch(0.78 0.01 255 / 0.5);
   --color-border-strong: oklch(0.58 0.015 255 / 0.55);
   --color-text: oklch(0.22 0.012 255);
   --color-text-muted: oklch(0.46 0.012 255);
   --color-text-faint: oklch(0.6 0.01 255);
+  --color-text-tertiary: oklch(0.66 0.01 255);
   --color-accent: oklch(0.55 0.19 255);
   --color-accent-strong: oklch(0.48 0.2 255);
   --color-success: oklch(0.55 0.15 150);
   --color-warning: oklch(0.62 0.15 75);
   --color-danger: oklch(0.55 0.2 25);
+  --color-ink: #000000;
 }
 
 /* 手动动效降级（F10 外观设置）：与 prefers-reduced-motion 同策略 */
