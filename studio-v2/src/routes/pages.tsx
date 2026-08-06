@@ -46,15 +46,6 @@ export function CanvasPage() {
   )
 }
 
-export function AssetsPage() {
-  return (
-    <PlaceholderPage
-      title="资产库"
-      description="素材浏览、上传、标签、搜索与回收站将在此实现（切片 19）。"
-    />
-  )
-}
-
 export function AgentsPage() {
   return (
     <PlaceholderPage
