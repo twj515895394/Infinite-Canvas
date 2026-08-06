@@ -8,9 +8,10 @@ import { ArrowLeft, Loader2, Plus, LayoutTemplate } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FieldLabel, TextInput } from '@/components/ui/form'
 import { ErrorState, LoadingState } from '@/components/ui/page-state'
 import { errorMessage } from '@/core/api/errors'
-import { toastError, toastSuccess } from '@/core/feedback/queryFeedback'
+import { toastSuccess } from '@/core/feedback/queryFeedback'
 import {
   useCanvases,
   useCreateCanvas,
@@ -37,10 +38,9 @@ function CreateCanvasForm({
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       <label className="flex flex-col gap-1.5">
-        <span className="text-xs text-text-muted">画布名称</span>
-        <input
+        <FieldLabel>画布名称</FieldLabel>
+        <TextInput
           autoFocus
-          className="h-9 rounded-md border border-border bg-surface-raised px-3 text-sm text-text placeholder:text-text-faint focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="例如：角色设定"
@@ -82,13 +82,14 @@ export default function ProjectDetailPage() {
   }
 
   const handleCreate = async (title: string) => {
+    // 失败仅走全局 MutationCache Toast（可重试）；成功再关对话框并跳转
     try {
       const canvas = await createCanvas.mutateAsync(title)
       toastSuccess('画布已创建', canvas.title)
       setDialogOpen(false)
       navigate(`/projects/${projectId}/canvases/${canvas.id}`)
-    } catch (err) {
-      toastError(err, '创建画布失败')
+    } catch {
+      /* toast via MutationCache */
     }
   }
 

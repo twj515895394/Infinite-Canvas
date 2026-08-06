@@ -8,7 +8,7 @@ import { Pencil, Plus, Trash2, Server } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/core/utils/cn'
 import { EmptyState } from '@/components/ui/empty-state'
-import { LoadingState } from '@/components/ui/page-state'
+import { ErrorState, LoadingState } from '@/components/ui/page-state'
 import { useProviders, useSaveProviders, type Provider } from '@/features/settings/api'
 import { ProviderFormDialog, type ProviderDraft } from '@/features/settings/ProviderFormDialog'
 
@@ -24,7 +24,7 @@ const protocolBadge: Record<string, string> = {
 }
 
 export function ProviderSection() {
-  const { data, isLoading } = useProviders()
+  const { data, isLoading, isError, refetch } = useProviders()
   const saveProviders = useSaveProviders()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Provider | null>(null)
@@ -87,6 +87,8 @@ export function ProviderSection() {
 
       {isLoading ? (
         <LoadingState label="加载 Provider…" className="h-16" />
+      ) : isError ? (
+        <ErrorState title="Provider 列表加载失败" onRetry={() => void refetch()} />
       ) : providers.length === 0 ? (
         <EmptyState
           icon={Server}

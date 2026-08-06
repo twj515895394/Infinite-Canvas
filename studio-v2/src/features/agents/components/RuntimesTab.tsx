@@ -7,6 +7,7 @@ import { Loader2, Pencil, Plus, PlugZap, Trash2 } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState, LoadingState } from '@/components/ui/page-state'
 import { FieldLabel, SelectField, TextInput } from '@/components/ui/form'
 import { cn } from '@/core/utils/cn'
 import {
@@ -146,7 +147,7 @@ function RuntimeFormDialog({
 }
 
 export function RuntimesTab() {
-  const { data: runtimes = [], isLoading, error } = useRuntimes()
+  const { data: runtimes = [], isLoading, error, refetch } = useRuntimes()
   const createRuntime = useCreateRuntime()
   const updateRuntime = useUpdateRuntime()
   const deleteRuntime = useDeleteRuntime()
@@ -242,12 +243,11 @@ export function RuntimesTab() {
       </div>
 
       {actionError && <p className="text-xs text-danger">{actionError}</p>}
-      {error && <p className="text-xs text-danger">{errorMessage(error, '加载 Runtime 失败')}</p>}
 
       {isLoading ? (
-        <div className="flex h-24 items-center justify-center text-text-faint">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-        </div>
+        <LoadingState label="加载 Runtime…" className="h-24" />
+      ) : error ? (
+        <ErrorState title="加载 Runtime 失败" hint={errorMessage(error)} onRetry={() => void refetch()} />
       ) : runtimes.length === 0 ? (
         <EmptyState
           icon={PlugZap}

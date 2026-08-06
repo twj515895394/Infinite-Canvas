@@ -10,8 +10,6 @@ import { Button, IconButton } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState, LoadingState } from '@/components/ui/page-state'
-import { errorMessage } from '@/core/api/errors'
-import { toastError } from '@/core/feedback/queryFeedback'
 import {
   useProjects,
   useCreateProject,
@@ -73,7 +71,6 @@ export default function ProjectsPage() {
   const archiveProject = useArchiveProject()
   const restoreProject = useRestoreProject()
   const [dialog, setDialog] = useState<DialogState>(null)
-  const [error, setError] = useState<string | null>(null)
 
   const projects = data?.items ?? []
   const active = projects.filter((p) => !p.archived)
@@ -81,38 +78,18 @@ export default function ProjectsPage() {
 
   const handleCreate = (name: string) => {
     setDialog(null)
-    createProject.mutate(name, {
-      onError: (err) => {
-        const msg = errorMessage(err, '创建项目失败')
-        setError(msg)
-        toastError(err, '创建项目失败')
-      },
-    })
+    // 失败由全局 MutationCache → Toast（含重试）；此处只关对话框
+    createProject.mutate(name)
   }
 
   const handleRename = (project: Project) => (name: string) => {
     setDialog(null)
-    renameProject.mutate(
-      { id: project.id, name, base_revision: project.revision },
-      {
-        onError: (err) => {
-          const msg = errorMessage(err, '重命名失败')
-          setError(msg)
-          toastError(err, '重命名失败')
-        },
-      },
-    )
+    renameProject.mutate({ id: project.id, name, base_revision: project.revision })
   }
 
   const handleArchive = (project: Project) => {
     setDialog(null)
-    archiveProject.mutate(project.id, {
-      onError: (err) => {
-        const msg = errorMessage(err, '归档失败')
-        setError(msg)
-        toastError(err, '归档失败')
-      },
-    })
+    archiveProject.mutate(project.id)
   }
 
   if (isLoading) {
@@ -173,15 +150,6 @@ export default function ProjectsPage() {
           <Plus size={15} aria-hidden /> 新建项目
         </Button>
       </div>
-
-      {error && (
-        <div className="mb-4 flex items-center justify-between rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
-          <span>{error}</span>
-          <button className="text-danger hover:underline" onClick={() => setError(null)}>
-            关闭
-          </button>
-        </div>
-      )}
 
       {active.length === 0 && archived.length === 0 ? (
         <EmptyState

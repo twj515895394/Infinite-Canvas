@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState, LoadingState } from '@/components/ui/page-state'
 import { SelectField } from '@/components/ui/form'
 import {
   errorMessage,
@@ -247,7 +248,7 @@ function TaskRow({
 
 export function TasksTab() {
   const [status, setStatus] = useState('')
-  const { data, isLoading, error } = useAgentTasks(status || undefined)
+  const { data, isLoading, error, refetch } = useAgentTasks(status || undefined)
   const cancelTask = useCancelTask()
   const retryTask = useRetryTask()
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -299,12 +300,11 @@ export function TasksTab() {
       </div>
 
       {actionError && <p className="text-xs text-danger">{actionError}</p>}
-      {error && <p className="text-xs text-danger">{errorMessage(error, '加载任务失败')}</p>}
 
       {isLoading ? (
-        <div className="flex h-24 items-center justify-center text-text-faint">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-        </div>
+        <LoadingState label="加载任务…" className="h-24" />
+      ) : error ? (
+        <ErrorState title="加载任务失败" hint={errorMessage(error)} onRetry={() => void refetch()} />
       ) : items.length === 0 ? (
         <EmptyState
           icon={ListTodo}

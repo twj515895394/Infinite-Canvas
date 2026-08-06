@@ -6,6 +6,7 @@ import { FileCode2, FolderSearch, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState, LoadingState } from '@/components/ui/page-state'
 import { FieldLabel, TextInput } from '@/components/ui/form'
 import { cn } from '@/core/utils/cn'
 import {
@@ -236,7 +237,7 @@ function SkillDetailPanel({ skill, onClose }: { skill: SkillSummary; onClose: ()
 }
 
 export function SkillsTab() {
-  const { data: skills = [], isLoading, error } = useSkills()
+  const { data: skills = [], isLoading, error, refetch } = useSkills()
   const discover = useDiscoverSkills()
   const enableSkill = useEnableSkill()
   const disableSkill = useDisableSkill()
@@ -290,12 +291,11 @@ export function SkillsTab() {
 
       {banner && <p className="text-xs text-text-muted">{banner}</p>}
       {actionError && <p className="text-xs text-danger">{actionError}</p>}
-      {error && <p className="text-xs text-danger">{errorMessage(error, '加载 Skill 失败')}</p>}
 
       {isLoading ? (
-        <div className="flex h-24 items-center justify-center text-text-faint">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-        </div>
+        <LoadingState label="加载 Skill…" className="h-24" />
+      ) : error ? (
+        <ErrorState title="加载 Skill 失败" hint={errorMessage(error)} onRetry={() => void refetch()} />
       ) : skills.length === 0 ? (
         <EmptyState
           icon={FileCode2}

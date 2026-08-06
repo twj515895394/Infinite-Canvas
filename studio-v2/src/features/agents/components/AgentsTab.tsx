@@ -6,6 +6,7 @@ import { Bot, Copy, Loader2, Pencil, Plus, Trash2, Zap } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
+import { ErrorState, LoadingState } from '@/components/ui/page-state'
 import { FieldLabel, SelectField, TextArea, TextInput } from '@/components/ui/form'
 import { cn } from '@/core/utils/cn'
 import {
@@ -295,7 +296,7 @@ function TestAgentDialog({
 }
 
 export function AgentsTab() {
-  const { data: agents = [], isLoading, error } = useAgents()
+  const { data: agents = [], isLoading, error, refetch } = useAgents()
   const { data: runtimes = [] } = useRuntimes()
   const { data: skills = [] } = useSkills()
   const { data: tasksPage } = useAgentTasks()
@@ -449,12 +450,11 @@ export function AgentsTab() {
         <p className="text-xs text-warning">请先在 Runtimes Tab 创建至少一个 Runtime。</p>
       )}
       {actionError && <p className="text-xs text-danger">{actionError}</p>}
-      {error && <p className="text-xs text-danger">{errorMessage(error, '加载 Agent 失败')}</p>}
 
       {isLoading ? (
-        <div className="flex h-24 items-center justify-center text-text-faint">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-        </div>
+        <LoadingState label="加载 Agent…" className="h-24" />
+      ) : error ? (
+        <ErrorState title="加载 Agent 失败" hint={errorMessage(error)} onRetry={() => void refetch()} />
       ) : agents.length === 0 ? (
         <EmptyState
           icon={Bot}
