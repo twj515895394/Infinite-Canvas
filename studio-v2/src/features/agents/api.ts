@@ -18,6 +18,7 @@ export {
   TASK_STATUS_LABELS,
   ACTIVE_TASK_STATUSES,
   isTaskActive,
+  formatValidationResult,
 } from '@/features/agents/status'
 
 // ---------- 枚举 / 联合类型（对齐后端 agent_schema） ----------
@@ -133,6 +134,8 @@ export interface SkillVersion {
   validation_status: string
   installed_at: number
   active: boolean
+  /** 后端 validation_result_json；issues 数组或 {message} 形状。 */
+  validation_result: unknown
 }
 
 export interface SkillDetail extends SkillSummary {
@@ -374,6 +377,7 @@ function normalizeSkillVersion(raw: unknown): SkillVersion | null {
     validation_status: asString(obj.validation_status, 'pending'),
     installed_at: asNumber(obj.installed_at),
     active: asBoolean(obj.active),
+    validation_result: obj.validation_result ?? null,
   }
 }
 

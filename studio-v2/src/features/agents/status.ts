@@ -93,3 +93,34 @@ export function taskTone(status: string): StatusTone {
   if (status === 'running' || status === 'preparing' || status === 'queued') return 'accent'
   return 'neutral'
 }
+
+/** 将 Skill validation_result 压成可读短文案。 */
+export function formatValidationResult(raw: unknown): string {
+  if (raw == null) return ''
+  if (typeof raw === 'string') return raw
+  if (Array.isArray(raw)) {
+    return raw
+      .map((item) => {
+        if (typeof item === 'string') return item
+        if (item && typeof item === 'object') {
+          const obj = item as Record<string, unknown>
+          const message = typeof obj.message === 'string' ? obj.message : ''
+          const code = typeof obj.code === 'string' ? obj.code : ''
+          const detail = typeof obj.detail === 'string' ? obj.detail : ''
+          return message || code || detail
+        }
+        return ''
+      })
+      .filter(Boolean)
+      .join('；')
+  }
+  if (typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>
+    if (Array.isArray(obj.issues)) return formatValidationResult(obj.issues)
+    const message = typeof obj.message === 'string' ? obj.message : ''
+    const detail = typeof obj.detail === 'string' ? obj.detail : ''
+    const error = typeof obj.error === 'string' ? obj.error : ''
+    return message || detail || error
+  }
+  return ''
+}

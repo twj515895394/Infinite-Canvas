@@ -1,7 +1,7 @@
 /**
- * Agents Tab（F13）：列表 / 新建编辑 / 复制 / 启停 / 绑定 Skill / 测试运行。
+ * Agents Tab（F13）：列表 / 新建编辑 / 复制 / 启停 / 绑定 Skill / 测试运行 / 近期 Task。
  */
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Bot, Copy, Loader2, Pencil, Plus, Trash2, Zap } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
@@ -11,6 +11,7 @@ import { cn } from '@/core/utils/cn'
 import {
   errorMessage,
   formatDate,
+  useAgentTasks,
   useAgents,
   useBindSkill,
   useCreateAgent,
@@ -24,7 +25,7 @@ import {
   type AgentProfile,
   type AgentTestResult,
 } from '@/features/agents/api'
-import { AGENT_STATUS_LABELS, agentTone } from '@/features/agents/status'
+import { AGENT_STATUS_LABELS, agentTone, TASK_STATUS_LABELS, taskTone } from '@/features/agents/status'
 import { StatusChip } from '@/features/agents/components/StatusChip'
 
 interface AgentDraft {
@@ -62,6 +63,7 @@ function AgentFormDialog({
 }) {
   const [draft, setDraft] = useState<AgentDraft>(EMPTY_DRAFT)
 
+  // 仅在打开/切换编辑目标时初始化；runtimeOptions 每 render 新数组，不可进 deps
   useEffect(() => {
     if (!open) return
     if (editing) {
@@ -73,11 +75,12 @@ function AgentFormDialog({
         instructions: editing.instructions,
         enabled: editing.enabled,
       })
-    } else {
-      const first = runtimeOptions.find((r) => r.enabled) ?? runtimeOptions[0]
-      setDraft({ ...EMPTY_DRAFT, runtime_profile_id: first?.id ?? '' })
+      return
     }
-  }, [open, editing, runtimeOptions])
+    const first = runtimeOptions.find((r) => r.enabled) ?? runtimeOptions[0]
+    setDraft({ ...EMPTY_DRAFT, runtime_profile_id: first?.id ?? '' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runtimeOptions 仅作打开瞬间默认值
+  }, [open, editing])
 
   const set = <K extends keyof AgentDraft>(key: K, value: AgentDraft[K]) =>
     setDraft((d) => ({ ...d, [key]: value }))
@@ -295,6 +298,7 @@ export function AgentsTab() {
   const { data: agents = [], isLoading, error } = useAgents()
   const { data: runtimes = [] } = useRuntimes()
   const { data: skills = [] } = useSkills()
+  const { data: tasksPage } = useAgentTasks()
   const createAgent = useCreateAgent()
   const updateAgent = useUpdateAgent()
   const deleteAgent = useDeleteAgent()
@@ -311,7 +315,24 @@ export function AgentsTab() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
-  const runtimeOptions = runtimes.map((r) => ({ id: r.id, name: r.name, enabled: r.enabled }))
+  const runtimeOptions = useMemo(
+    () => runtimes.map((r) => ({ id: r.id, name: r.name, enabled: r.enabled })),
+    [runtimes],
+  )
+
+  const recentByAgent = useMemo(() => {
+    // 按 agent 分组取最近 5 条（列表已按 updated_at desc）
+    const buckets = new Map<string, NonNullable<typeof tasksPage>['items']>()
+    for (const task of tasksPage?.items ?? []) {
+      const key = task.agent_profile.id
+      const list = buckets.get(key) ?? []
+      if (list.length < 5) {
+        list.push(task)
+        buckets.set(key, list)
+      }
+    }
+    return buckets
+  }, [tasksPage])
 
   const openCreate = () => {
     setEditing(null)
@@ -566,6 +587,29 @@ export function AgentsTab() {
                         </p>
                       </div>
                     )}
+                    <div className="mt-2">
+                      <p className="mb-1 text-[11px] font-medium text-text-muted">近期 Task</p>
+                      {(recentByAgent.get(agent.id) ?? []).length === 0 ? (
+                        <p className="text-[11px] text-text-faint">暂无任务（测试运行后会出现在此）。</p>
+                      ) : (
+                        <ul className="flex flex-col gap-1">
+                          {(recentByAgent.get(agent.id) ?? []).map((task) => (
+                            <li
+                              key={task.id}
+                              className="flex items-center justify-between gap-2 rounded border border-border/60 bg-bg px-2 py-1.5 text-[11px]"
+                            >
+                              <span className="min-w-0 truncate text-text-faint">
+                                {formatDate(task.updated_at)} · {task.message}
+                              </span>
+                              <StatusChip
+                                label={TASK_STATUS_LABELS[task.status] ?? task.status}
+                                tone={taskTone(task.status)}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
                   </div>
                 )}
               </li>

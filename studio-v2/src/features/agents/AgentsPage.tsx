@@ -62,7 +62,7 @@ export default function AgentsPage() {
                   transition={
                     reduced
                       ? { duration: 0.12 }
-                      : { type: 'spring', bounce: 0, duration: 0.28 }
+                      : { type: 'spring', bounce: 0, duration: 0.18 }
                   }
                 />
               )}
@@ -86,7 +86,7 @@ export default function AgentsPage() {
             transition={
               reduced
                 ? { duration: 0.12 }
-                : { type: 'spring', bounce: 0, duration: 0.22 }
+                : { type: 'spring', bounce: 0, duration: 0.18 }
             }
           >
             {tab === 'agents' && <AgentsTab />}

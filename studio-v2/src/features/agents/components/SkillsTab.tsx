@@ -11,6 +11,7 @@ import { cn } from '@/core/utils/cn'
 import {
   errorMessage,
   formatDate,
+  formatValidationResult,
   useActivateSkillVersion,
   useDisableSkill,
   useDiscoverSkills,
@@ -183,24 +184,28 @@ function SkillDetailPanel({ skill, onClose }: { skill: SkillSummary; onClose: ()
               <ul className="flex flex-col gap-1">
                 {(detail?.versions ?? []).map((v) => {
                   const active = v.active || detail?.active_version === v.version
+                  const validationError = formatValidationResult(v.validation_result)
                   return (
                     <li
                       key={v.id}
-                      className="flex items-center justify-between rounded border border-border/60 bg-bg px-2 py-1.5 text-xs"
+                      className="flex flex-col gap-1 rounded border border-border/60 bg-bg px-2 py-1.5 text-xs"
                     >
-                      <span className="text-text">
-                        v{v.version}
-                        <span className="ml-1 text-text-faint">
-                          {v.validation_status}
-                          {active ? ' · 当前' : ''}
-                          {v.installed_at ? ` · ${formatDate(v.installed_at)}` : ''}
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-text">
+                          v{v.version}
+                          <span className="ml-1 text-text-faint">
+                            {v.validation_status}
+                            {active ? ' · 当前' : ''}
+                            {v.installed_at ? ` · ${formatDate(v.installed_at)}` : ''}
+                          </span>
                         </span>
-                      </span>
-                      {!active && (
-                        <Button size="sm" variant="ghost" disabled={activate.isPending} onClick={() => void onActivate(v.id)}>
-                          激活
-                        </Button>
-                      )}
+                        {!active && (
+                          <Button size="sm" variant="ghost" disabled={activate.isPending} onClick={() => void onActivate(v.id)}>
+                            激活
+                          </Button>
+                        )}
+                      </div>
+                      {validationError && <p className="text-[11px] text-danger">{validationError}</p>}
                     </li>
                   )
                 })}
