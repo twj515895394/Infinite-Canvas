@@ -1,16 +1,17 @@
 /**
  * agent-task 节点 Inspector（切片 23 F15）。
- * - 配置：Agent / Skill / 任务说明
+ * - 配置：Agent / Skill / 任务说明（form.tsx 共享控件）
  * - 执行：复用 dockApi createSession + createDockTask；节点只存 Task ID + 摘要
- * - 状态：useAgentTask 轮询 active_task_id → setRuntime + patch config
+ * - 状态展示：useAgentTask；写回由画布级 refreshAgentTaskNodes 负责（不依赖本面板挂载）
  * - 查看结果：openDock({ activeTaskId }) 打开 Dock 时间线
  * - 无 Agent 时 EmptyState 引导 Agent Center
  */
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bot, ExternalLink, Loader2, Play, XCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { FieldLabel, SelectField, TextArea } from '@/components/ui/form'
 import { StatusChip } from '@/features/agents/components/StatusChip'
 import {
   errorMessage,
@@ -19,7 +20,7 @@ import {
   useCancelTask,
   type AgentProfile,
 } from '@/features/agents/api'
-import { createDockTask, createSession, extractResultText } from '@/features/agents/dockApi'
+import { createDockTask, createSession } from '@/features/agents/dockApi'
 import { useDockStore, newIdempotencyKey } from '@/features/agents/dockStore'
 import { isTaskActive, TASK_STATUS_LABELS, taskTone } from '@/features/agents/status'
 import {
@@ -27,9 +28,9 @@ import {
   canSubmitAgentTask,
   contextRefsFromIncomingEdges,
   parseAgentTaskConfig,
-  patchAfterTaskStatus,
   patchAfterTaskSubmit,
 } from '@/features/canvas/agentTaskNode'
+import { applyAgentTaskToNode } from '@/features/canvas/agentTaskRuntime'
 import { useEditorStore } from '@/features/canvas/store'
 
 interface AgentTaskInspectorProps {
@@ -37,12 +38,6 @@ interface AgentTaskInspectorProps {
   config: Record<string, unknown>
   updateConfig: (id: string, patch: Record<string, unknown>) => void
 }
-
-const inputCls =
-  'rounded-md border border-border bg-bg px-2 py-1.5 text-xs text-text outline-none focus:border-accent'
-
-const selectCls =
-  'h-8 rounded-md border border-border bg-bg px-2 text-xs text-text outline-none focus:border-accent'
 
 export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskInspectorProps) {
   const navigate = useNavigate()
@@ -63,8 +58,9 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
   const taskQuery = useAgentTask(activeTaskId)
   const activeTask = taskQuery.data ?? null
   const cancelTask = useCancelTask()
+  const runtimeStatus = useEditorStore((s) => s.runtime[nodeId])
 
-  const status = activeTask?.status ?? null
+  const status = activeTask?.status ?? runtimeStatus ?? null
   const running = submitting || (status != null && isTaskActive(status))
   const guide = agentTaskGuide({ config, agentsAvailable: agents.length })
   const canRun = canSubmitAgentTask({
@@ -72,66 +68,6 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
     agentsAvailable: agents.length,
     activeTaskStatus: status,
   })
-
-  // 轮询状态 → 节点 runtime chip + config 摘要/历史（不进 undo；仅在值变化时写）
-  useEffect(() => {
-    if (!activeTask || !activeTaskId) return
-    useEditorStore.getState().setRuntime(nodeId, activeTask.status)
-
-    const currentConfig =
-      useEditorStore.getState().nodes.find((n) => n.id === nodeId)?.config ?? config
-    const current = parseAgentTaskConfig(currentConfig)
-
-    let resultSummary: string | null = null
-    if (activeTask.status === 'succeeded') {
-      const text = extractResultText({ task: activeTask })
-      resultSummary = text ? text.slice(0, 500) : '任务已完成'
-    }
-
-    const patch = patchAfterTaskStatus({
-      config: currentConfig,
-      taskId: activeTask.id,
-      status: activeTask.status,
-      resultSummary,
-    })
-    if (Object.keys(patch).length === 0) return
-
-    // 值未变则跳过，避免轮询反复 dirty
-    const nextSummary =
-      patch.result_summary !== undefined ? patch.result_summary : current.result_summary
-    const nextLatest =
-      patch.latest_successful_task_id !== undefined
-        ? patch.latest_successful_task_id
-        : current.latest_successful_task_id
-    const nextHistory = Array.isArray(patch.task_history)
-      ? (patch.task_history as string[])
-      : current.task_history
-    const historySame =
-      nextHistory.length === current.task_history.length &&
-      nextHistory.every((id, i) => id === current.task_history[i])
-    if (
-      nextSummary === current.result_summary &&
-      nextLatest === current.latest_successful_task_id &&
-      historySame
-    ) {
-      return
-    }
-
-    useEditorStore.setState((s) => ({
-      nodes: s.nodes.map((n) =>
-        n.id === nodeId ? { ...n, config: { ...n.config, ...patch } } : n,
-      ),
-      dirty: true,
-    }))
-  }, [
-    activeTask?.id,
-    activeTask?.status,
-    activeTask?.updated_at,
-    activeTask?.latest_run?.result_summary,
-    activeTaskId,
-    nodeId,
-    config,
-  ])
 
   const openResultInDock = (taskId: string) => {
     const meta = useEditorStore.getState().meta
@@ -190,7 +126,7 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
         sessionId,
       })
       updateConfig(nodeId, patch)
-      useEditorStore.getState().setRuntime(nodeId, task.status)
+      applyAgentTaskToNode(nodeId, task)
     } catch (err) {
       setActionError(errorMessage(err))
     } finally {
@@ -203,7 +139,7 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
     setActionError(null)
     try {
       const task = await cancelTask.mutateAsync(activeTaskId)
-      useEditorStore.getState().setRuntime(nodeId, task.status)
+      applyAgentTaskToNode(nodeId, task)
     } catch (err) {
       setActionError(errorMessage(err))
     }
@@ -239,9 +175,8 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
   return (
     <div className="flex flex-col gap-3">
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] text-text-muted">Agent</span>
-        <select
-          className={selectCls}
+        <FieldLabel>Agent</FieldLabel>
+        <SelectField
           value={parsed.agent_profile_id}
           onChange={(e) => {
             // 换 Agent 清空 Skill（绑定集不同）
@@ -255,13 +190,12 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
               {!a.runtime_profile.enabled ? '（Runtime 停用）' : ''}
             </option>
           ))}
-        </select>
+        </SelectField>
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] text-text-muted">Skill（可选）</span>
-        <select
-          className={selectCls}
+        <FieldLabel>Skill（可选）</FieldLabel>
+        <SelectField
           value={parsed.skill_id ?? ''}
           disabled={!parsed.agent_profile_id}
           onChange={(e) => updateConfig(nodeId, { skill_id: e.target.value || null })}
@@ -272,16 +206,17 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
               {b.skill.name}
             </option>
           ))}
-        </select>
+        </SelectField>
         {parsed.agent_profile_id && skillOptions.length === 0 && (
-          <span className="text-[10px] text-text-faint">该 Agent 尚未绑定 Skill，可到 Agent Center 绑定。</span>
+          <span className="text-[10px] text-text-faint">
+            该 Agent 尚未绑定 Skill，可到 Agent Center 绑定。
+          </span>
         )}
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="text-[11px] text-text-muted">任务说明</span>
-        <textarea
-          className={inputCls}
+        <FieldLabel>任务说明</FieldLabel>
+        <TextArea
           rows={3}
           placeholder="描述要 Agent 完成的任务…"
           value={parsed.instruction}
@@ -293,7 +228,6 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
         <p className="text-[11px] text-text-faint">{guide.message}</p>
       ) : null}
 
-      {/* 运行控制 */}
       <div className="flex flex-wrap items-center gap-2">
         <Button variant="primary" size="sm" disabled={!canRun || running} onClick={() => void run()}>
           {submitting ? <Loader2 size={13} className="animate-spin" aria-hidden /> : <Play size={13} aria-hidden />}
@@ -313,7 +247,6 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
         )}
       </div>
 
-      {/* 当前 Task 引用 */}
       {(activeTaskId || parsed.result_summary) && (
         <div className="flex flex-col gap-1.5 rounded-md border border-border bg-bg px-2.5 py-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -342,7 +275,7 @@ export function AgentTaskInspector({ nodeId, config, updateConfig }: AgentTaskIn
 
       {history.length > 0 && (
         <div className="flex flex-col gap-1">
-          <span className="text-[11px] text-text-muted">历史 Task</span>
+          <FieldLabel>历史 Task</FieldLabel>
           <ul className="flex flex-col gap-0.5">
             {history.map((id) => (
               <li key={id}>

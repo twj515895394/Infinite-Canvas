@@ -33,6 +33,7 @@ import { ImageGenInspector } from '@/features/generation/ImageGenInspector'
 import { VideoInspector } from '@/features/generation/VideoInspector'
 import { WorkflowInspector } from '@/features/generation/WorkflowInspector'
 import { AgentTaskInspector } from '@/features/canvas/AgentTaskInspector'
+import { hasPollableAgentTaskNodes, refreshAgentTaskNodes } from '@/features/canvas/agentTaskRuntime'
 import { loadCanvas, saveCanvasSnapshot, isRevisionConflict } from '@/features/canvas/persistence'
 import { cn } from '@/core/utils/cn'
 import { useDockStore, nodeToContextRef } from '@/features/agents/dockStore'
@@ -235,6 +236,17 @@ function CanvasWorkspace() {
     }, 800)
     return () => clearTimeout(timer)
   }, [dirty, canvasId, store])
+
+  /* agent-task 画布级轮询：不依赖 Inspector 挂载 */
+  useEffect(() => {
+    if (loading) return
+    const tick = () => {
+      if (hasPollableAgentTaskNodes()) void refreshAgentTaskNodes()
+    }
+    tick()
+    const timer = setInterval(tick, 2000)
+    return () => clearInterval(timer)
+  }, [loading, nodes])
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => {

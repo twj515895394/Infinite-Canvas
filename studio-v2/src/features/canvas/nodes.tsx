@@ -7,7 +7,7 @@ import { Handle, Position, type NodeProps, type NodeTypes } from '@xyflow/react'
 import { Image, Film, Workflow, Box, FileText, FolderTree, Wand2, Type, Bot } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { nodeRegistry, type NodeDefinition } from '@/features/canvas/registry'
-import { validateAgentTaskConfig } from '@/features/canvas/agentTaskNode'
+import { validateAgentTaskConfig, agentTaskSubtitle } from '@/features/canvas/agentTaskNode'
 import { cn } from '@/core/utils/cn'
 import type { MediaKind } from '@/features/media/api'
 import { MediaThumbnail } from '@/features/media/components/MediaThumbnail'
@@ -227,17 +227,16 @@ export const StudioNodeHost = memo(function StudioNodeHost({ data, selected }: N
         )}
       </div>
       <div className="truncate border-t border-border px-3 py-1.5 text-[11px] text-text-faint">
-        {String(
-          config.prompt ??
-            config.workflow ??
-            config.title ??
-            config.label ??
-            config.instruction ??
-            config.result_summary ??
-            config.active_task_id ??
-            (nodeType === 'asset' ? config.name : '') ??
-            '',
-        ) || '未配置'}
+        {nodeType === 'agent-task'
+          ? agentTaskSubtitle(config)
+          : String(
+              config.prompt ??
+                config.workflow ??
+                config.title ??
+                config.label ??
+                (nodeType === 'asset' ? config.name : '') ??
+                '',
+            ) || '未配置'}
       </div>
       {resultUrls.length > 0 && (
         <div className="grid grid-cols-3 gap-1 border-t border-border p-1.5">

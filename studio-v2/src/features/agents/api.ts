@@ -852,14 +852,16 @@ export function useAgentTasks(status?: string) {
   })
 }
 
+export async function getAgentTask(taskId: string): Promise<AgentTask> {
+  const res = await api.get<{ task: unknown }>(`/api/v2/agent-tasks/${encodeURIComponent(taskId)}`)
+  return normalizeTask(res.task)
+}
+
 export function useAgentTask(taskId: string | null) {
   return useQuery({
     queryKey: taskKeys.detail(taskId ?? ''),
     enabled: Boolean(taskId),
-    queryFn: async () => {
-      const res = await api.get<{ task: unknown }>(`/api/v2/agent-tasks/${taskId}`)
-      return normalizeTask(res.task)
-    },
+    queryFn: () => getAgentTask(taskId as string),
     refetchInterval: (query) => {
       const task = query.state.data
       return task && isTaskActive(task.status) ? 2000 : false
