@@ -282,16 +282,19 @@ export function resultToFile(
   return new File([text], `${basename}.txt`, { type: 'text/plain' })
 }
 
-/** 保存结果为资产（document）；成功返回 asset id 列表。 */
 export async function saveResultToLibrary(opts: {
   text: string
   format: SaveArtifactFormat
   tags?: string[]
   basename?: string
+  projectId?: string | null
 }): Promise<{ assetIds: string[]; error?: string }> {
   const file = resultToFile(opts.text, opts.format, opts.basename ?? 'agent-result')
   try {
-    const handle = ingestUpload([file], { tags: opts.tags ?? ['agent-artifact'] })
+    const handle = ingestUpload([file], {
+      tags: opts.tags ?? ['agent-artifact'],
+      projectId: opts.projectId ?? null,
+    })
     const result = await handle.promise
     const ids = result.assets.map((a) => a.id).filter(Boolean)
     if (ids.length === 0) {

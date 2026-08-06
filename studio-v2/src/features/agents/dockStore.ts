@@ -91,13 +91,13 @@ export const useDockStore = create<DockState>()((set, get) => ({
   closeDock: () => set({ open: false }),
 
   setAgentId: (id) => {
-    // 换 Agent 时清 Skill（绑定集不同）与 Session（需按新 Agent 重建）
+    // 换 Agent 时清 Skill / Session / 活动 Task（绑定集与会话需重建，时间线不串台）
     const prev = get().agentId
     if (prev === id) {
       set({ agentId: id })
       return
     }
-    set({ agentId: id, skillId: null, sessionId: null })
+    set({ agentId: id, skillId: null, sessionId: null, activeTaskId: null })
   },
 
   setSkillId: (id) => set({ skillId: id }),

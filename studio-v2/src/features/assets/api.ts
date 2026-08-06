@@ -441,6 +441,7 @@ export class IngestUploadAbortError extends Error {
 export interface IngestUploadOptions {
   tags?: string[]
   collectionId?: string | null
+  projectId?: string | null
   onProgress?: (percent: number, loaded: number, total: number) => void
 }
 
@@ -497,6 +498,7 @@ export function ingestUpload(files: File[], options?: IngestUploadOptions): Inge
   for (const file of files) form.append('files', file)
   if (options?.tags && options.tags.length > 0) form.append('tags', JSON.stringify(options.tags))
   if (options?.collectionId) form.append('collection_id', options.collectionId)
+  if (options?.projectId) form.append('project_id', options.projectId)
 
   const promise = new Promise<IngestUploadResult>((resolve, reject) => {
     xhr.open('POST', '/api/v2/assets/ingest/upload')

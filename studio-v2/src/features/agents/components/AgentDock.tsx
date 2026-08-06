@@ -39,13 +39,14 @@ import {
   type TaskEventItem,
 } from '@/features/agents/dockApi'
 import {
+  assetToContextRef,
   newIdempotencyKey,
   useDockStore,
   type DockContextRef,
 } from '@/features/agents/dockStore'
 import { StatusChip } from '@/features/agents/components/StatusChip'
 import { isTaskActive, TASK_STATUS_LABELS, taskTone } from '@/features/agents/status'
-
+import { ingestUpload } from '@/features/assets/api'
 function ContextChips({
   refs,
   onRemove,
@@ -85,15 +86,17 @@ function Timeline({
   events,
   task,
   status,
+  errorMessageText,
 }: {
   events: TaskEventItem[]
   task: AgentTask | null
   status: string | null
+  errorMessageText?: string | null
 }) {
   const bottomRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
-  }, [events.length, status])
+  }, [events.length, status, errorMessageText])
 
   if (!task && events.length === 0) {
     return (
@@ -140,9 +143,9 @@ function Timeline({
           运行中…
         </div>
       )}
-      {task?.error?.message && (
+      {errorMessageText && (
         <div className="rounded-md border border-danger/30 bg-danger/10 px-2.5 py-2 text-xs text-danger">
-          {task.error.message}
+          {errorMessageText}
         </div>
       )}
       <div ref={bottomRef} />
@@ -170,32 +173,34 @@ export function AgentDock() {
 
   const { data: agents = [], isLoading: agentsLoading } = useAgents()
   const { data: skills = [] } = useSkills()
+  const { data: activeTask } = useAgentTask(activeTaskId)
   const createTask = useCreateDockTask()
   const cancelTask = useCancelTask()
-  const { data: activeTask } = useAgentTask(activeTaskId)
-
   const reduced = useReducedMotion()
   const [actionError, setActionError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [cursor, setCursor] = useState(0)
   const [events, setEvents] = useState<TaskEventItem[]>([])
   const [liveStatus, setLiveStatus] = useState<string | null>(null)
+  const [runError, setRunError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const assetFileRef = useRef<HTMLInputElement>(null)
 
   const enabledAgents = useMemo(() => agents.filter((a) => a.enabled), [agents])
   const selectedAgent = agents.find((a) => a.id === agentId) ?? null
   const boundSkills = selectedAgent?.skill_bindings.filter((b) => b.enabled) ?? []
-  // 未绑定时仍允许从全局 enabled skills 选（可选）
-  const skillOptions = boundSkills.length > 0
-    ? boundSkills.map((b) => ({ id: b.skill_id, name: b.skill.name }))
-    : skills.filter((s) => s.enabled).map((s) => ({ id: s.id, name: s.name }))
+  const skillOptions =
+    boundSkills.length > 0
+      ? boundSkills.map((b) => ({ id: b.skill_id, name: b.skill.name }))
+      : skills.filter((s) => s.enabled).map((s) => ({ id: s.id, name: s.name }))
 
   // 切换 Task 时重置事件流
   useEffect(() => {
     setCursor(0)
     setEvents([])
     setLiveStatus(null)
+    setRunError(null)
     setSaveMsg(null)
   }, [activeTaskId])
 
@@ -204,6 +209,7 @@ export function AgentDock() {
     const page = eventsQuery.data
     if (!page) return
     setLiveStatus(page.status)
+    if (page.run?.error?.message) setRunError(page.run.error.message)
     if (page.events.length > 0) {
       setEvents((prev) => {
         const seen = new Set(prev.map((e) => e.sequence))
@@ -226,9 +232,17 @@ export function AgentDock() {
   }, [open, agentId, enabledAgents, setAgentId])
 
   const resultText = extractResultText({ task: activeTask, events })
-  const status = liveStatus ?? activeTask?.status ?? null
+  // detail 与 events 取“更新”视角：取消响应会先写回 detail，events 稍后跟上
+  const status = activeTask?.status && !isTaskActive(activeTask.status)
+    ? activeTask.status
+    : (liveStatus ?? activeTask?.status ?? null)
   const canCancel = status != null && isTaskActive(status)
   const canSave = Boolean(resultText) && status === 'succeeded'
+  const errorText =
+    activeTask?.error?.message ||
+    activeTask?.latest_run?.error?.message ||
+    runError ||
+    null
 
   const onSubmit = async () => {
     const text = message.trim()
@@ -257,6 +271,7 @@ export function AgentDock() {
         idempotencyKey: newIdempotencyKey(),
       })
       setActiveTaskId(task.id)
+      setLiveStatus(task.status)
       setMessage('')
     } catch (err) {
       setActionError(errorMessage(err, '提交任务失败'))
@@ -269,7 +284,9 @@ export function AgentDock() {
     if (!activeTaskId) return
     setActionError(null)
     try {
-      await cancelTask.mutateAsync(activeTaskId)
+      const task = await cancelTask.mutateAsync(activeTaskId)
+      // 立即反映 cancel_requested/cancelled，不等 events 下一轮
+      setLiveStatus(task.status)
     } catch (err) {
       setActionError(errorMessage(err, '取消失败'))
     }
@@ -283,6 +300,7 @@ export function AgentDock() {
       text: resultText,
       format,
       basename: `agent-${activeTaskId ?? 'result'}`,
+      projectId,
     })
     setSaving(false)
     if (res.error) setSaveMsg(res.error)
@@ -294,6 +312,30 @@ export function AgentDock() {
     downloadResultFile(resultText, format, `agent-${activeTaskId ?? 'result'}`)
     setSaveMsg(format === 'json' ? '已下载 JSON' : '已下载文本')
   }
+
+  const onPickAssets = async (files: FileList | null) => {
+    if (!files || files.length === 0) return
+    setActionError(null)
+    try {
+      const handle = ingestUpload([...files], {
+        tags: ['agent-context'],
+        projectId: projectId ?? null,
+      })
+      const result = await handle.promise
+      const refs = result.assets
+        .map((a) => assetToContextRef(a))
+        .filter((r): r is NonNullable<typeof r> => r != null)
+      if (refs.length > 0) useDockStore.getState().mergeContextRefs(refs)
+      if (result.failures.length > 0) {
+        setActionError(result.failures[0]?.detail || result.failures[0]?.title || '部分文件上传失败')
+      }
+    } catch (err) {
+      setActionError(errorMessage(err, '上传上下文失败'))
+    } finally {
+      if (assetFileRef.current) assetFileRef.current.value = ''
+    }
+  }
+
 
   return (
     <AnimatePresence>
@@ -372,15 +414,33 @@ export function AgentDock() {
                 </SelectField>
               </label>
               <div>
-                <FieldLabel>上下文</FieldLabel>
-                <div className="mt-1">
-                  <ContextChips refs={contextRefs} onRemove={removeContextRef} />
+                <div className="mb-1 flex items-center justify-between gap-2">
+                  <FieldLabel>上下文</FieldLabel>
+                  <div>
+                    <input
+                      ref={assetFileRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      accept="image/*,video/*,audio/*,.json,.txt,.md,.pdf,.zip"
+                      onChange={(e) => void onPickAssets(e.target.files)}
+                    />
+                    <Button size="sm" variant="ghost" onClick={() => assetFileRef.current?.click()}>
+                      添加资产
+                    </Button>
+                  </div>
                 </div>
+                <ContextChips refs={contextRefs} onRemove={removeContextRef} />
               </div>
             </div>
 
             {/* Timeline */}
-            <Timeline events={events} task={activeTask ?? null} status={status} />
+            <Timeline
+              events={events}
+              task={activeTask ?? null}
+              status={status}
+              errorMessageText={errorText}
+            />
 
             {/* Actions for result */}
             {(canSave || canCancel || saveMsg) && (
