@@ -1,0 +1,39 @@
+{
+  "projects": [
+    {
+      "id": "default",
+      "name": "默认项目",
+      "order": 0,
+      "created_at": 1785913169381,
+      "updated_at": 1785913169381
+    },
+    {
+      "id": "prj_f513f3c10f344573b00d414ef3516dd4",
+      "name": "冒烟项目",
+      "order": 0,
+      "created_at": 1785945110615,
+      "updated_at": 1785945110615,
+      "revision": 1,
+      "archived": false
+    },
+    {
+      "id": "prj_70791c352532417583e8ce1affbb28f2",
+      "name": "测试项目",
+      "order": 0,
+      "created_at": 1785945200287,
+      "updated_at": 1786001613158,
+      "revision": 2,
+      "archived": false
+    },
+    {
+      "id": "prj_ec6106704e7c48ab81182f941c9c5393",
+      "name": "F12-E2E",
+      "order": 0,
+      "created_at": 1785981132089,
+      "updated_at": 1785981451054,
+      "revision": 2,
+      "archived": true,
+      "archived_at": 1785981451054
+    }
+  ]
+}

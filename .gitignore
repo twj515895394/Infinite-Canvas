@@ -1,0 +1,39 @@
+# Python virtualenv
+.venv/
+venv/
+env/
+
+# Bytecode / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Local secrets & runtime
+API/.env
+global_config.json
+history.json
+
+# Generated / user data (keep local)
+data/canvases/
+data/conversations/
+data/media_previews/
+data/api_providers.json
+data/runninghub_workflows.json
+data/shared_folders.json
+data/storage_settings.json
+data/prompt_libraries.json
+assets/input/
+assets/output/
+assets/uploads/
+assets/library/
+output/
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db

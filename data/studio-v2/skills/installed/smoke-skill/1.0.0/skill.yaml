@@ -1,0 +1,4 @@
+skill_key: smoke-skill
+name: Smoke
+version: 1.0.0
+execution_mode: prompt

@@ -287,7 +287,7 @@
 
   async function connect() {
     const host = net.parseHost(els.server.value);
-    if (!host) { setConnMsg('请输入地址，例如 192.168.1.10:3000', 'err'); return; }
+    if (!host) { setConnMsg('请输入地址，例如 192.168.1.10:3888', 'err'); return; }
     state.host = host;
     state.connected = false;
     state.raw = { assets: null, canvas: null, local: null };   // 换后端：清空数据与网格缓存
