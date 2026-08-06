@@ -12,6 +12,10 @@ export default defineConfig({
     },
   },
   server: {
+    // 固定非常用端口，避免与本机其它 Vite/Next(5173/3000) 冲突；strictPort 占用即失败不静默漂移
+    host: '127.0.0.1',
+    port: 13888,
+    strictPort: true,
     // 开发期代理到现有 FastAPI 后端（main.py，端口 3888）
     proxy: {
       '/api': { target: 'http://127.0.0.1:3888', changeOrigin: true },

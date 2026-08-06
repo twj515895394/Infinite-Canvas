@@ -8,11 +8,14 @@ import { ProviderSection } from '@/features/settings/ProviderSection'
 import { StorageSection } from '@/features/settings/StorageSection'
 import { AppearanceSection } from '@/features/settings/AppearanceSection'
 
-/** 开发态走 Vite 5173，生产由 FastAPI 同域托管时仍可回到旧前端根路径。 */
-const LEGACY_URL =
-  typeof window !== 'undefined' && window.location.port === '5173'
-    ? 'http://127.0.0.1:3888/'
-    : '/'
+/** 开发态 Vite 独立端口 → 旧 UI 在后端 3888；同域生产（含 :3888）回站点根路径。 */
+const LEGACY_URL = (() => {
+  if (typeof window === 'undefined') return '/'
+  const port = window.location.port
+  // 空端口=80/443；3888=后端同域托管。其余独立端口视为 dev 前端。
+  if (port && port !== '3888') return 'http://127.0.0.1:3888/'
+  return '/'
+})()
 
 export default function SettingsPage() {
   return (
