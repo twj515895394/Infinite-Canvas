@@ -206,6 +206,15 @@ async def startup_event():
         await asyncio.to_thread(migrate_mislabeled_image_extensions)
     except Exception as exc:
         print(f"纠正图片扩展名失败: {exc}")
+    # Agent Task 重启恢复（B8 §14.6）：把 preparing/running 且租约过期的 Run 标 interrupted
+    try:
+        from API.v2.agent_tasks import recover_interrupted_runs
+
+        recovered = await asyncio.to_thread(recover_interrupted_runs)
+        if recovered.get("recovered"):
+            print(f"Agent 恢复 {recovered['recovered']} 个中断 Run")
+    except Exception as exc:
+        print(f"Agent 中断恢复失败: {exc}")
 
 @app.websocket("/ws/stats")
 async def websocket_endpoint(websocket: WebSocket, client_id: str = None):

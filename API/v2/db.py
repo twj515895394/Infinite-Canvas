@@ -178,10 +178,18 @@ def get_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
 
 
 def init_db(db_path: Optional[str] = None) -> None:
-    """初始化库：建目录、建表（幂等）。"""
+    """初始化库：建目录、建表（幂等）。业务领域表（assets/agents/...）以惰性导入追加。"""
     conn = get_connection(db_path=db_path)
     for statement in BASE_SCHEMA:
         conn.execute(statement)
+    # Agent/Skill P0 表（B6/B7/B8）：独立 schema 模块惰性导入，避免 db.py 与领域层循环依赖
+    try:
+        from API.v2.agent_schema import AGENT_SCHEMA
+
+        for statement in AGENT_SCHEMA:
+            conn.execute(statement)
+    except ImportError:
+        pass  # agent 模块未安装时跳过（测试隔离场景）
     conn.commit()
 
 

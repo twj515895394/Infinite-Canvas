@@ -8,6 +8,12 @@ from API.v2.bootstrap import router as bootstrap_router
 from API.v2.canvases import router as canvases_router
 from API.v2.generation_tasks import router as generation_tasks_router
 from API.v2.projects import router as projects_router
+from API.v2.agent_runtimes import router as agent_runtimes_router
+from API.v2.agent_profiles import router as agent_profiles_router
+from API.v2.agent_skills import router as agent_skills_router
+from API.v2.agent_sessions import router as agent_sessions_router
+from API.v2.agent_tasks import router as agent_tasks_router
+from API.v2.agent_contexts import router as agent_contexts_router
 
 v2_router = APIRouter(prefix="/api/v2")
 
@@ -17,3 +23,9 @@ v2_router.include_router(canvases_router)
 v2_router.include_router(assets_router)
 v2_router.include_router(asset_collections_router)
 v2_router.include_router(generation_tasks_router)
+v2_router.include_router(agent_runtimes_router)
+v2_router.include_router(agent_profiles_router)
+v2_router.include_router(agent_skills_router)
+v2_router.include_router(agent_sessions_router)
+v2_router.include_router(agent_tasks_router)
+v2_router.include_router(agent_contexts_router)
