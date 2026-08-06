@@ -1,0 +1,1457 @@
+/**
+ * ============================================================
+ * design-system.css — Infinite Canvas UI Upgrade Patch
+ * Strategy : Layered Override (non-destructive)
+ * Reference: Apple Design (WWDC) + design-taste-frontend + gpt-taste
+ * Prefix    : --sc-  (all new tokens)
+ * ============================================================
+ */
+
+/* ============================================================
+   0. FONT IMPORT — PingFang SC → Inter for CJK+Latin harmony
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..800;1,14..32,300..800&display=swap');
+
+/* ============================================================
+   1. DESIGN TOKENS — Light Mode
+   ============================================================ */
+:root {
+    /* Background Hierarchy */
+    --sc-bg-base:      #f5f7fb;
+    --sc-bg-card:      #ffffff;
+    --sc-bg-panel:     rgba(255, 255, 255, 0.86);
+    --sc-bg-overlay:   rgba(255, 255, 255, 0.68);
+    --sc-bg-inset:     rgba(15, 23, 42, 0.028);
+    --sc-bg-hover:     rgba(15, 23, 42, 0.035);
+
+    /* Border Hierarchy */
+    --sc-border-subtle:  rgba(15, 23, 42, 0.06);
+    --sc-border-base:    rgba(15, 23, 42, 0.10);
+    --sc-border-strong:  rgba(15, 23, 42, 0.20);
+    --sc-border-accent:  #0f172a;
+
+    /* Text Hierarchy */
+    --sc-text-primary:    #0c1220;
+    --sc-text-secondary:  #4b5a70;
+    --sc-text-tertiary:   #8896aa;
+    --sc-text-quaternary: #b2bece;
+    --sc-text-on-accent:  #ffffff;
+
+    /* Accent */
+    --sc-accent:           #1a1f36;
+    --sc-accent-alt:       #2563eb;
+    --sc-accent-surface:   rgba(26, 31, 54, 0.06);
+    --sc-accent-hover:     #111827;
+    --sc-accent-glow:      rgba(37, 99, 235, 0.14);
+
+    /* Functional */
+    --sc-success:          #059669;
+    --sc-success-surface:  rgba(5, 150, 105, 0.08);
+    --sc-warning:          #d97706;
+    --sc-warning-surface:  rgba(217, 119, 6, 0.08);
+    --sc-danger:           #dc2626;
+    --sc-danger-surface:   rgba(220, 38, 38, 0.08);
+    --sc-info:             #2563eb;
+
+    /* Shadow System — hue-tinted, multi-layered */
+    --sc-shadow-xs: 0 1px 2px rgba(12, 18, 32, 0.04);
+    --sc-shadow-sm: 0 2px 8px rgba(12, 18, 32, 0.06),
+                    0 1px 2px rgba(12, 18, 32, 0.04);
+    --sc-shadow-md: 0 4px 16px rgba(12, 18, 32, 0.08),
+                    0 2px 6px rgba(12, 18, 32, 0.04);
+    --sc-shadow-lg: 0 12px 32px rgba(12, 18, 32, 0.10),
+                    0 4px 12px rgba(12, 18, 32, 0.05);
+    --sc-shadow-xl: 0 24px 56px rgba(12, 18, 32, 0.12),
+                    0 8px 20px rgba(12, 18, 32, 0.06);
+    --sc-shadow-2xl: 0 40px 80px rgba(12, 18, 32, 0.14),
+                     0 12px 28px rgba(12, 18, 32, 0.07);
+
+    /* Blur / Backdrop */
+    --sc-blur-sm:  blur(8px) saturate(1.4);
+    --sc-blur-md:  blur(18px) saturate(1.6);
+    --sc-blur-lg:  blur(28px) saturate(1.8);
+    --sc-blur-xl:  blur(40px) saturate(2.0);
+
+    /* Typography Scale (4px baseline) */
+    --sc-text-2xs:  10px;
+    --sc-text-xs:   11px;
+    --sc-text-sm:   12px;
+    --sc-text-base: 13px;
+    --sc-text-md:   14px;
+    --sc-text-lg:   16px;
+    --sc-text-xl:   20px;
+    --sc-text-2xl:  24px;
+
+    /* Font Weight */
+    --sc-weight-light:    300;
+    --sc-weight-normal:   400;
+    --sc-weight-medium:   500;
+    --sc-weight-semibold: 600;
+    --sc-weight-bold:     700;
+    --sc-weight-extrabold:800;
+
+    /* Line Height */
+    --sc-leading-none:    1.0;
+    --sc-leading-tight:   1.2;
+    --sc-leading-snug:    1.35;
+    --sc-leading-normal:  1.45;
+    --sc-leading-relaxed: 1.6;
+
+    /* Letter Spacing */
+    --sc-tracking-tight:   -0.02em;
+    --sc-tracking-snug:    -0.01em;
+    --sc-tracking-normal:  0em;
+    --sc-tracking-wide:    0.03em;
+    --sc-tracking-wider:   0.06em;
+    --sc-tracking-widest:  0.10em;
+
+    /* Spacing (4px grid) */
+    --sc-space-px:  1px;
+    --sc-space-0-5: 2px;
+    --sc-space-1:   4px;
+    --sc-space-1-5: 6px;
+    --sc-space-2:   8px;
+    --sc-space-2-5: 10px;
+    --sc-space-3:   12px;
+    --sc-space-4:   16px;
+    --sc-space-5:   20px;
+    --sc-space-6:   24px;
+    --sc-space-8:   32px;
+    --sc-space-10:  40px;
+    --sc-space-12:  48px;
+
+    /* Border Radius */
+    --sc-radius-xs:   4px;
+    --sc-radius-sm:   6px;
+    --sc-radius-md:   10px;
+    --sc-radius-lg:   14px;
+    --sc-radius-xl:   18px;
+    --sc-radius-2xl:  24px;
+    --sc-radius-full: 9999px;
+
+    /* Animation — Apple Spring physics */
+    --sc-ease-spring:    cubic-bezier(0.16, 1, 0.3, 1);
+    --sc-ease-spring-in: cubic-bezier(0.55, 0, 1, 0.45);
+    --sc-ease-bounce:    cubic-bezier(0.34, 1.56, 0.64, 1);
+    --sc-ease-material:  cubic-bezier(0.4, 0, 0.2, 1);
+    --sc-ease-snap:      cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    --sc-duration-instant: 60ms;
+    --sc-duration-fast:    110ms;
+    --sc-duration-base:    160ms;
+    --sc-duration-slow:    240ms;
+    --sc-duration-slower:  360ms;
+    --sc-duration-panel:   280ms;
+}
+
+/* ============================================================
+   1-B. DESIGN TOKENS — Dark Mode
+   ============================================================ */
+.theme-dark {
+    --sc-bg-base:      #090c14;
+    --sc-bg-card:      #101520;
+    --sc-bg-panel:     rgba(13, 18, 30, 0.92);
+    --sc-bg-overlay:   rgba(18, 24, 38, 0.78);
+    --sc-bg-inset:     rgba(255, 255, 255, 0.022);
+    --sc-bg-hover:     rgba(255, 255, 255, 0.032);
+
+    --sc-border-subtle:  rgba(148, 163, 184, 0.07);
+    --sc-border-base:    rgba(148, 163, 184, 0.12);
+    --sc-border-strong:  rgba(148, 163, 184, 0.24);
+    --sc-border-accent:  #c8d4e8;
+
+    --sc-text-primary:    #dde4f0;
+    --sc-text-secondary:  #7e93b2;
+    --sc-text-tertiary:   #4d617e;
+    --sc-text-quaternary: #364b66;
+    --sc-text-on-accent:  #090c14;
+
+    --sc-accent:          #c8d4e8;
+    --sc-accent-surface:  rgba(200, 212, 232, 0.06);
+    --sc-accent-hover:    #e4ecf7;
+    --sc-accent-glow:     rgba(200, 212, 232, 0.10);
+
+    --sc-shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.22);
+    --sc-shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.30), 0 1px 2px rgba(0, 0, 0, 0.18);
+    --sc-shadow-md:  0 4px 16px rgba(0, 0, 0, 0.38), 0 2px 6px rgba(0, 0, 0, 0.20);
+    --sc-shadow-lg:  0 12px 32px rgba(0, 0, 0, 0.44), 0 4px 12px rgba(0, 0, 0, 0.24);
+    --sc-shadow-xl:  0 24px 56px rgba(0, 0, 0, 0.50), 0 8px 20px rgba(0, 0, 0, 0.28);
+    --sc-shadow-2xl: 0 40px 80px rgba(0, 0, 0, 0.58), 0 12px 28px rgba(0, 0, 0, 0.32);
+}
+
+/* ============================================================
+   2. GLOBAL RESET PATCHES
+   ============================================================ */
+body {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "SF Pro Text", sans-serif;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-optical-sizing: auto;
+}
+
+/* Base focus ring — accessible, not default blue */
+:focus-visible {
+    outline: 2px solid var(--sc-accent);
+    outline-offset: 2px;
+    border-radius: var(--sc-radius-sm);
+}
+
+/* Reduced motion — respect the preference */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ============================================================
+   3. CANVAS BACKGROUND — Refined dot grid
+   ============================================================ */
+.shell {
+    background-color: var(--sc-bg-base) !important;
+    background-image: radial-gradient(
+        circle at 1px 1px,
+        rgba(100, 116, 139, 0.22) 1px,
+        transparent 0
+    ) !important;
+    background-size: 24px 24px !important;
+}
+
+.theme-dark .shell {
+    background-color: var(--sc-bg-base) !important;
+    background-image: radial-gradient(
+        circle at 1px 1px,
+        rgba(148, 163, 184, 0.14) 1px,
+        transparent 0
+    ) !important;
+}
+
+/* ============================================================
+   4. FLOATING CHROME — Back Button & Title
+   ============================================================ */
+.smart-back {
+    height: 36px !important;
+    padding: 0 14px !important;
+    border-radius: var(--sc-radius-full) !important;
+    background: var(--sc-bg-panel) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    box-shadow: var(--sc-shadow-md) !important;
+    backdrop-filter: var(--sc-blur-md) !important;
+    -webkit-backdrop-filter: var(--sc-blur-md) !important;
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    color: var(--sc-text-secondary) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring),
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        color var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.smart-back:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--sc-shadow-lg) !important;
+    border-color: var(--sc-border-strong) !important;
+    color: var(--sc-text-primary) !important;
+}
+
+.smart-back:active {
+    transform: translateY(0px) scale(0.98) !important;
+    box-shadow: var(--sc-shadow-sm) !important;
+    transition-duration: var(--sc-duration-instant) !important;
+}
+
+.smart-back i,
+.smart-back svg {
+    width: 14px !important;
+    height: 14px !important;
+    stroke-width: 2.2 !important;
+    opacity: 0.7;
+}
+
+/* Canvas Title */
+.smart-title {
+    font-size: var(--sc-text-xs) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    color: var(--sc-text-tertiary) !important;
+    letter-spacing: var(--sc-tracking-wide) !important;
+    text-transform: none !important;
+}
+
+/* ============================================================
+   5. TOOLBAR BUTTONS — Log / Shortcut / Workflow
+   ============================================================ */
+.smart-log-toggle,
+.smart-shortcut-toggle,
+.smart-workflow-toggle {
+    height: 36px !important;
+    width: auto !important;
+    min-width: 36px !important;
+    padding: 0 14px !important;
+    border-radius: var(--sc-radius-full) !important;
+    background: var(--sc-bg-panel) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    box-shadow: var(--sc-shadow-md) !important;
+    backdrop-filter: var(--sc-blur-md) !important;
+    -webkit-backdrop-filter: var(--sc-blur-md) !important;
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    color: var(--sc-text-secondary) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+    gap: 6px !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring),
+        border-color var(--sc-duration-base) var(--sc-ease-material),
+        background var(--sc-duration-base) var(--sc-ease-material),
+        color var(--sc-duration-base) var(--sc-ease-material) !important;
+}
+
+.smart-log-toggle:hover,
+.smart-shortcut-toggle:hover,
+.smart-workflow-toggle:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--sc-shadow-lg) !important;
+    border-color: var(--sc-border-strong) !important;
+    color: var(--sc-text-primary) !important;
+}
+
+.smart-log-toggle:active,
+.smart-shortcut-toggle:active,
+.smart-workflow-toggle:active {
+    transform: translateY(0px) scale(0.98) !important;
+    transition-duration: var(--sc-duration-instant) !important;
+}
+
+/* Active state — accent fill */
+.smart-log-toggle.active,
+.smart-shortcut-toggle.active,
+.smart-workflow-toggle.active {
+    background: var(--sc-accent) !important;
+    border-color: var(--sc-accent) !important;
+    color: var(--sc-text-on-accent) !important;
+    box-shadow: var(--sc-shadow-lg),
+                0 0 0 1px var(--sc-accent) !important;
+}
+
+.smart-log-toggle i,
+.smart-log-toggle svg,
+.smart-shortcut-toggle i,
+.smart-shortcut-toggle svg,
+.smart-workflow-toggle i,
+.smart-workflow-toggle svg {
+    width: 14px !important;
+    height: 14px !important;
+    stroke-width: 2 !important;
+    transition: transform var(--sc-duration-slow) var(--sc-ease-spring) !important;
+}
+
+.smart-log-toggle.active i,
+.smart-log-toggle.active svg,
+.smart-shortcut-toggle.active i,
+.smart-shortcut-toggle.active svg,
+.smart-workflow-toggle.active i,
+.smart-workflow-toggle.active svg {
+    transform: rotate(10deg) !important;
+}
+
+/* ============================================================
+   6. NODE CARDS — Image Nodes, Smart Nodes
+   ============================================================ */
+
+/* Shared transition for all nodes */
+.image-node {
+    transition:
+        box-shadow var(--sc-duration-base) var(--sc-ease-spring),
+        transform var(--sc-duration-base) var(--sc-ease-spring),
+        border-color var(--sc-duration-base) var(--sc-ease-material),
+        outline-color var(--sc-duration-base) var(--sc-ease-material) !important;
+}
+
+/* Empty / Prompt / Loop / Minimax nodes */
+.image-node.empty-node,
+.image-node.prompt-smart-node,
+.image-node.loop-smart-node,
+.image-node.minimax-smart-node {
+    border-radius: var(--sc-radius-lg) !important;
+    border-color: var(--sc-border-base) !important;
+    backdrop-filter: var(--sc-blur-md) !important;
+    -webkit-backdrop-filter: var(--sc-blur-md) !important;
+    box-shadow: var(--sc-shadow-md) !important;
+}
+
+/* Hover lift — subtle, 2px float */
+.image-node.empty-node:hover:not(.selected),
+.image-node.prompt-smart-node:hover:not(.selected),
+.image-node.loop-smart-node:hover:not(.selected),
+.image-node.minimax-smart-node:hover:not(.selected) {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--sc-shadow-lg) !important;
+    border-color: var(--sc-border-strong) !important;
+}
+
+/* Selected state — 2px accent ring + elevated shadow */
+.image-node.selected.empty-node,
+.image-node.selected.prompt-smart-node,
+.image-node.selected.loop-smart-node,
+.image-node.selected.minimax-smart-node {
+    border-color: var(--sc-accent) !important;
+    box-shadow:
+        0 0 0 1.5px var(--sc-accent),
+        var(--sc-shadow-xl) !important;
+    transform: translateY(0) translateZ(0) !important;
+}
+
+/* Image wrap selected ring */
+.image-node.selected:not(.empty-node):not(.group-node):not(.prompt-smart-node):not(.loop-smart-node):not(.minimax-smart-node) .image-wrap > img,
+.image-node.selected:not(.empty-node):not(.group-node):not(.prompt-smart-node):not(.loop-smart-node):not(.minimax-smart-node) .image-wrap > .node-img {
+    box-shadow: 0 0 0 2px var(--sc-accent) !important;
+    border-radius: var(--sc-radius-md) !important;
+    border-color: var(--sc-accent) !important;
+}
+
+/* Group nodes */
+.image-node.group-node {
+    border-radius: var(--sc-radius-xl) !important;
+    border-color: var(--sc-border-subtle) !important;
+}
+
+.image-node.group-node:hover,
+.image-node.group-node.selected {
+    border-color: var(--sc-accent) !important;
+}
+
+.image-node.group-node.selected {
+    box-shadow: 0 0 0 1.5px var(--sc-accent), var(--sc-shadow-lg) !important;
+}
+
+/* ============================================================
+   7. NODE HEAD (title area)
+   ============================================================ */
+.node-head {
+    border-bottom: 1px solid var(--sc-border-subtle) !important;
+}
+
+.node-title {
+    font-size: var(--sc-text-xs) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    color: var(--sc-text-tertiary) !important;
+    letter-spacing: var(--sc-tracking-wide) !important;
+}
+
+/* ============================================================
+   8. NODE PORTS — Connection points
+   ============================================================ */
+.node-port {
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-material),
+        opacity var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.node-port:hover {
+    transform: scale(1.5) !important;
+    box-shadow: 0 0 0 4px var(--sc-accent-surface) !important;
+}
+
+/* Port connecting pulse animation */
+@keyframes sc-port-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 var(--sc-accent-surface); }
+    50%       { box-shadow: 0 0 0 6px transparent; }
+}
+
+.node-port.connecting {
+    animation: sc-port-pulse 1.2s infinite var(--sc-ease-material) !important;
+}
+
+/* ============================================================
+   9. COMPOSER CARD — The central creation panel
+   ============================================================ */
+.composer {
+    /* Apple: panels float from the bottom, spring entrance */
+    transition:
+        opacity var(--sc-duration-panel) var(--sc-ease-spring),
+        transform var(--sc-duration-panel) var(--sc-ease-spring) !important;
+}
+
+.composer.open {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+}
+
+.composer-card {
+    border-radius: var(--sc-radius-2xl) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    /* Multi-layer glass with light edge refraction */
+    box-shadow:
+        var(--sc-shadow-2xl),
+        inset 0 1px 0 rgba(255, 255, 255, 0.50) !important;
+    backdrop-filter: var(--sc-blur-xl) !important;
+    -webkit-backdrop-filter: var(--sc-blur-xl) !important;
+    padding: var(--sc-space-3) !important;
+    gap: var(--sc-space-2) !important;
+}
+
+.theme-dark .composer-card {
+    background: var(--sc-bg-panel) !important;
+    border-color: var(--sc-border-base) !important;
+    box-shadow:
+        var(--sc-shadow-2xl),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Composer Head */
+.composer-head {
+    padding: 0 var(--sc-space-1) !important;
+    gap: var(--sc-space-2) !important;
+}
+
+/* Engine Selector */
+.engine-select {
+    height: 28px !important;
+    padding: 0 12px !important;
+    border-radius: var(--sc-radius-full) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-inset) !important;
+    color: var(--sc-text-secondary) !important;
+    font-size: var(--sc-text-xs) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+    transition:
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        background var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.engine-select:hover { border-color: var(--sc-border-strong) !important; }
+.engine-select:focus { border-color: var(--sc-accent) !important; outline: none !important; }
+
+/* Kind Toggle (图片 / 视频) */
+.kind-toggle {
+    padding: 3px !important;
+    border-radius: var(--sc-radius-full) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-inset) !important;
+    gap: 2px !important;
+}
+
+.kind-toggle button {
+    height: 22px !important;
+    padding: 0 10px !important;
+    border-radius: var(--sc-radius-full) !important;
+    font-size: var(--sc-text-xs) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    gap: 4px !important;
+    transition:
+        background var(--sc-duration-fast) var(--sc-ease-material),
+        color var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.kind-toggle button:hover { color: var(--sc-text-primary) !important; }
+
+.kind-toggle button.active {
+    background: var(--sc-accent) !important;
+    color: var(--sc-text-on-accent) !important;
+    box-shadow: var(--sc-shadow-sm) !important;
+}
+
+.kind-toggle button i,
+.kind-toggle button svg {
+    width: 11px !important;
+    height: 11px !important;
+    stroke-width: 2.2 !important;
+}
+
+/* ============================================================
+   10. PROMPT INPUT — The creative core
+   ============================================================ */
+.prompt-input {
+    border-radius: var(--sc-radius-lg) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-card) !important;
+    color: var(--sc-text-primary) !important;
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-normal) !important;
+    line-height: var(--sc-leading-relaxed) !important;
+    padding: var(--sc-space-3) 44px var(--sc-space-3) var(--sc-space-3) !important;
+    transition:
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring) !important;
+}
+
+.prompt-input:empty::before {
+    color: var(--sc-text-quaternary) !important;
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-normal) !important;
+}
+
+/* Apple focus glow — accent ring, subtle spread */
+.prompt-input:focus {
+    border-color: var(--sc-accent) !important;
+    box-shadow: 0 0 0 3px var(--sc-accent-surface),
+                var(--sc-shadow-sm) !important;
+}
+
+.theme-dark .prompt-input:focus {
+    box-shadow: 0 0 0 3px var(--sc-accent-surface),
+                0 0 0 1px var(--sc-accent) !important;
+}
+
+/* Template button */
+.composer-template-btn {
+    width: 30px !important;
+    height: 30px !important;
+    border-radius: var(--sc-radius-md) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-inset) !important;
+    color: var(--sc-text-tertiary) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring),
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        background var(--sc-duration-fast) var(--sc-ease-material),
+        color var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.composer-template-btn:hover {
+    transform: translateY(-1px) !important;
+    border-color: var(--sc-border-strong) !important;
+    color: var(--sc-text-primary) !important;
+    box-shadow: var(--sc-shadow-sm) !important;
+}
+
+.composer-template-btn.active {
+    background: var(--sc-accent) !important;
+    border-color: var(--sc-accent) !important;
+    color: var(--sc-text-on-accent) !important;
+    box-shadow: var(--sc-shadow-md) !important;
+}
+
+/* Resize Handle */
+.prompt-resize::after {
+    width: 28px !important;
+    height: 3px !important;
+    border-radius: var(--sc-radius-full) !important;
+    background: var(--sc-border-base) !important;
+    transition: width var(--sc-duration-fast) var(--sc-ease-spring),
+                background var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.prompt-row:hover .prompt-resize::after,
+.prompt-row:focus-within .prompt-resize::after {
+    width: 36px !important;
+    background: var(--sc-border-strong) !important;
+}
+
+/* ============================================================
+   11. COMPOSER ACTIONS — Run Button
+   ============================================================ */
+.composer-actions {
+    padding: 0 var(--sc-space-1) var(--sc-space-1) !important;
+    gap: var(--sc-space-2) !important;
+}
+
+.run-btn {
+    height: 40px !important;
+    padding: 0 var(--sc-space-5) !important;
+    border-radius: var(--sc-radius-lg) !important;
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-bold) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+    gap: var(--sc-space-1-5) !important;
+
+    /* Premium gradient — not flat black */
+    background: linear-gradient(
+        135deg,
+        #1a1f36 0%,
+        #0f172a 50%,
+        #1e293b 100%
+    ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    color: #ffffff !important;
+
+    /* Multi-layer shadow for lift */
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.08) inset,
+        var(--sc-shadow-md),
+        0 0 0 1px rgba(15, 23, 42, 0.6) !important;
+
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring),
+        filter var(--sc-duration-fast) var(--sc-ease-material) !important;
+
+    position: relative;
+    overflow: hidden;
+}
+
+/* Shimmer effect on hover */
+.run-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        105deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.06) 50%,
+        transparent 70%
+    );
+    transform: translateX(-100%);
+    transition: transform 0.5s var(--sc-ease-material);
+}
+
+.run-btn:hover::before {
+    transform: translateX(100%);
+}
+
+.run-btn:hover:not(:disabled) {
+    transform: translateY(-2px) !important;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.10) inset,
+        var(--sc-shadow-lg),
+        0 0 20px rgba(37, 99, 235, 0.12) !important;
+    filter: brightness(1.08) !important;
+}
+
+.run-btn:active:not(:disabled) {
+    transform: translateY(0px) scale(0.98) !important;
+    box-shadow: var(--sc-shadow-sm), 0 0 0 1px rgba(15, 23, 42, 0.6) !important;
+    filter: brightness(0.95) !important;
+    transition-duration: var(--sc-duration-instant) !important;
+}
+
+.run-btn:disabled {
+    opacity: 0.48 !important;
+    cursor: not-allowed !important;
+}
+
+.run-btn i,
+.run-btn svg {
+    width: 15px !important;
+    height: 15px !important;
+    stroke-width: 2 !important;
+}
+
+/* Cascade run button */
+.cascade-run-btn {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.12) inset,
+        var(--sc-shadow-md),
+        0 0 0 1px rgba(29, 78, 216, 0.4) !important;
+}
+
+/* Dark mode run button */
+.theme-dark .run-btn {
+    background: linear-gradient(
+        135deg,
+        #c8d4e8 0%,
+        #dde4f0 50%,
+        #c8d4e8 100%
+    ) !important;
+    color: #0a0e1a !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.18) inset,
+        var(--sc-shadow-lg) !important;
+}
+
+.theme-dark .run-btn:hover:not(:disabled) {
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.22) inset,
+        var(--sc-shadow-xl),
+        0 0 24px rgba(200, 212, 232, 0.12) !important;
+}
+
+/* ============================================================
+   12. CREATE MENU — Node creation panel
+   ============================================================ */
+.create-menu {
+    border-radius: var(--sc-radius-xl) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    box-shadow: var(--sc-shadow-xl),
+                inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: var(--sc-blur-lg) !important;
+    -webkit-backdrop-filter: var(--sc-blur-lg) !important;
+    padding: var(--sc-space-2) !important;
+    transition:
+        opacity var(--sc-duration-panel) var(--sc-ease-spring),
+        transform var(--sc-duration-panel) var(--sc-ease-spring) !important;
+}
+
+.theme-dark .create-menu {
+    box-shadow: var(--sc-shadow-xl),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+.create-card {
+    border-radius: var(--sc-radius-lg) !important;
+    border: 1px solid var(--sc-border-subtle) !important;
+    background: transparent !important;
+    transition:
+        background var(--sc-duration-fast) var(--sc-ease-material),
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring) !important;
+}
+
+.create-card:hover {
+    background: var(--sc-bg-hover) !important;
+    border-color: var(--sc-border-base) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--sc-shadow-sm) !important;
+}
+
+.create-card:active {
+    transform: scale(0.97) !important;
+    transition-duration: var(--sc-duration-instant) !important;
+}
+
+.create-card-icon {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: var(--sc-radius-md) !important;
+    background: var(--sc-bg-inset) !important;
+    border: 1px solid var(--sc-border-subtle) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+    transition:
+        background var(--sc-duration-fast) var(--sc-ease-material),
+        border-color var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.create-card:hover .create-card-icon {
+    background: var(--sc-bg-card) !important;
+    border-color: var(--sc-border-base) !important;
+}
+
+.create-card-title {
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    color: var(--sc-text-primary) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+}
+
+.create-card-sub {
+    font-size: var(--sc-text-2xs) !important;
+    font-weight: var(--sc-weight-normal) !important;
+    color: var(--sc-text-tertiary) !important;
+    line-height: var(--sc-leading-normal) !important;
+}
+
+/* ============================================================
+   13. FLOATING PANELS — Log, Shortcut, Workflow, Asset
+   ============================================================ */
+.smart-log-panel,
+.shortcut-panel,
+.workflow-panel,
+.asset-panel {
+    border-radius: var(--sc-radius-xl) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    box-shadow: var(--sc-shadow-xl),
+                inset 0 1px 0 rgba(255, 255, 255, 0.40) !important;
+    backdrop-filter: var(--sc-blur-lg) !important;
+    -webkit-backdrop-filter: var(--sc-blur-lg) !important;
+}
+
+.theme-dark .smart-log-panel,
+.theme-dark .shortcut-panel,
+.theme-dark .workflow-panel,
+.theme-dark .asset-panel {
+    box-shadow: var(--sc-shadow-xl),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Panel head sections — unified typography */
+.smart-log-head,
+.shortcut-panel-head,
+.workflow-panel-head,
+[class*="-panel-head"] {
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-bold) !important;
+    color: var(--sc-text-primary) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+    border-bottom: 1px solid var(--sc-border-subtle) !important;
+    padding: var(--sc-space-3) var(--sc-space-4) !important;
+}
+
+/* Panel close buttons */
+.log-close,
+.panel-close,
+[class*="-close"] {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: var(--sc-radius-md) !important;
+    color: var(--sc-text-tertiary) !important;
+    border: 1px solid transparent !important;
+    transition:
+        background var(--sc-duration-fast) var(--sc-ease-material),
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        color var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+[class*="-close"]:hover {
+    background: var(--sc-bg-hover) !important;
+    border-color: var(--sc-border-base) !important;
+    color: var(--sc-text-primary) !important;
+}
+
+/* ============================================================
+   14. MODAL DIALOGS — Image Edit, Preview
+   ============================================================ */
+@keyframes sc-modal-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes sc-modal-out {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.96);
+    }
+}
+
+.preview-modal,
+.image-edit-modal {
+    border-radius: var(--sc-radius-xl) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    box-shadow: var(--sc-shadow-2xl),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: var(--sc-blur-xl) !important;
+    -webkit-backdrop-filter: var(--sc-blur-xl) !important;
+    animation: sc-modal-in var(--sc-duration-panel) var(--sc-ease-spring) !important;
+}
+
+.theme-dark .preview-modal,
+.theme-dark .image-edit-modal {
+    box-shadow: var(--sc-shadow-2xl),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+/* ============================================================
+   15. MINIMAP
+   ============================================================ */
+.smart-minimap {
+    border-radius: var(--sc-radius-lg) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    box-shadow: var(--sc-shadow-lg),
+                inset 0 1px 0 rgba(255, 255, 255, 0.30) !important;
+    backdrop-filter: var(--sc-blur-md) !important;
+    -webkit-backdrop-filter: var(--sc-blur-md) !important;
+    overflow: hidden !important;
+}
+
+.theme-dark .smart-minimap {
+    box-shadow: var(--sc-shadow-lg),
+                inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Minimap viewport indicator */
+.minimap-viewport,
+.smart-minimap-viewport {
+    border: 2px solid var(--sc-accent) !important;
+    border-radius: 3px !important;
+    opacity: 0.65 !important;
+    background: var(--sc-accent-surface) !important;
+}
+
+/* ============================================================
+   16. SELECTION HUB & FLOATING MENUS
+   ============================================================ */
+.selection-hub,
+.smart-node-floating-menu,
+.floating-node-actions {
+    border-radius: var(--sc-radius-full) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    box-shadow: var(--sc-shadow-lg),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: var(--sc-blur-md) !important;
+    -webkit-backdrop-filter: var(--sc-blur-md) !important;
+}
+
+/* Pill buttons in floating menus */
+.smart-pill,
+.node-action-btn,
+.mini-btn {
+    border-radius: var(--sc-radius-full) !important;
+    font-size: var(--sc-text-xs) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        background var(--sc-duration-fast) var(--sc-ease-material),
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring) !important;
+}
+
+.smart-pill:hover,
+.node-action-btn:hover,
+.mini-btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: var(--sc-shadow-sm) !important;
+}
+
+/* ============================================================
+   17. PROMPT NODE INTERNALS
+   ============================================================ */
+.prompt-node-text {
+    border-radius: var(--sc-radius-md) !important;
+    border-color: var(--sc-border-base) !important;
+    font-size: var(--sc-text-xs) !important;
+    font-weight: var(--sc-weight-normal) !important;
+    line-height: var(--sc-leading-normal) !important;
+    transition:
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring) !important;
+}
+
+.prompt-node-text:focus {
+    border-color: var(--sc-accent) !important;
+    box-shadow: 0 0 0 2px var(--sc-accent-surface) !important;
+}
+
+/* Prompt node pills */
+.prompt-node-pill {
+    border-radius: var(--sc-radius-sm) !important;
+    border-color: var(--sc-border-base) !important;
+    font-size: var(--sc-text-2xs) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    transition:
+        background var(--sc-duration-fast) var(--sc-ease-material),
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        color var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.prompt-node-pill.active {
+    background: var(--sc-accent) !important;
+    border-color: var(--sc-accent) !important;
+    color: var(--sc-text-on-accent) !important;
+}
+
+/* Run pill in prompt node */
+.prompt-node-run {
+    border-radius: var(--sc-radius-sm) !important;
+    background: var(--sc-accent) !important;
+    color: var(--sc-text-on-accent) !important;
+    font-size: var(--sc-text-2xs) !important;
+    font-weight: var(--sc-weight-bold) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        filter var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.prompt-node-run:hover:not(:disabled) {
+    transform: translateY(-1px) !important;
+    filter: brightness(1.1) !important;
+}
+
+/* Loop smart run button */
+.loop-smart-run,
+.cascade-run-btn {
+    border-radius: var(--sc-radius-md) !important;
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-bold) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        filter var(--sc-duration-fast) var(--sc-ease-material),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring) !important;
+}
+
+.loop-smart-run:hover:not(:disabled),
+.cascade-run-btn:hover:not(:disabled) {
+    transform: translateY(-2px) !important;
+    filter: brightness(1.06) !important;
+    box-shadow: var(--sc-shadow-lg) !important;
+}
+
+/* ============================================================
+   18. SCROLLBAR REFINEMENT — slimmer, more elegant
+   ============================================================ */
+.smart-log-panel *,
+.shortcut-panel *,
+.workflow-panel *,
+.composer-card *,
+.prompt-node-text,
+.loop-smart-upstream,
+.loop-smart-upstream-text {
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(148, 163, 184, 0.30) transparent !important;
+}
+
+.smart-log-panel *::-webkit-scrollbar,
+.shortcut-panel *::-webkit-scrollbar,
+.workflow-panel *::-webkit-scrollbar,
+.composer-card *::-webkit-scrollbar {
+    width: 4px !important;
+    height: 4px !important;
+}
+
+.smart-log-panel *::-webkit-scrollbar-thumb,
+.shortcut-panel *::-webkit-scrollbar-thumb,
+.workflow-panel *::-webkit-scrollbar-thumb,
+.composer-card *::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.30) !important;
+    border-radius: var(--sc-radius-full) !important;
+}
+
+/* ============================================================
+   19. INPUT THUMBS ROW — Reference images
+   ============================================================ */
+.input-thumb {
+    border-radius: var(--sc-radius-md) !important;
+    border-color: var(--sc-border-base) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring),
+        border-color var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.input-thumb:hover {
+    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: var(--sc-shadow-md) !important;
+    border-color: var(--sc-border-strong) !important;
+}
+
+.input-thumb-add {
+    border-radius: var(--sc-radius-md) !important;
+    border-color: var(--sc-border-base) !important;
+    font-size: var(--sc-text-xs) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring),
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        background var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.input-thumb-add:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: var(--sc-shadow-sm) !important;
+}
+
+/* ============================================================
+   20. ASSET DOCK & HOVER PREVIEW
+   ============================================================ */
+.asset-dock {
+    border-radius: var(--sc-radius-full) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    box-shadow: var(--sc-shadow-lg),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: var(--sc-blur-md) !important;
+    -webkit-backdrop-filter: var(--sc-blur-md) !important;
+}
+
+.asset-hover-preview {
+    border-radius: var(--sc-radius-xl) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    box-shadow: var(--sc-shadow-xl) !important;
+    backdrop-filter: var(--sc-blur-lg) !important;
+    -webkit-backdrop-filter: var(--sc-blur-lg) !important;
+}
+
+/* ============================================================
+   21. MENTION PICKER — @mention overlay
+   ============================================================ */
+.mention-picker {
+    border-radius: var(--sc-radius-lg) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    box-shadow: var(--sc-shadow-xl) !important;
+    backdrop-filter: var(--sc-blur-lg) !important;
+    -webkit-backdrop-filter: var(--sc-blur-lg) !important;
+}
+
+.mention-option {
+    border-radius: var(--sc-radius-md) !important;
+    transition:
+        background var(--sc-duration-fast) var(--sc-ease-material),
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        border-color var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.mention-option:hover {
+    transform: translateY(-1px) !important;
+}
+
+/* ============================================================
+   22. TOOLTIP / HINT PILLS
+   ============================================================ */
+.node-hint,
+[class*="-hint"],
+[class*="-badge"] {
+    font-size: var(--sc-text-2xs) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    letter-spacing: var(--sc-tracking-wide) !important;
+    border-radius: var(--sc-radius-full) !important;
+}
+
+/* ============================================================
+   23. OUTPUT PREVIEW — Generated image result
+   ============================================================ */
+.output-preview {
+    border-radius: var(--sc-radius-lg) !important;
+    border-color: var(--sc-border-base) !important;
+    overflow: hidden !important;
+    transition:
+        box-shadow var(--sc-duration-base) var(--sc-ease-spring) !important;
+}
+
+.output-preview:hover {
+    box-shadow: var(--sc-shadow-lg) !important;
+}
+
+/* Image resolution badge */
+.image-resolution-badge {
+    border-radius: var(--sc-radius-full) !important;
+    font-size: var(--sc-text-2xs) !important;
+    font-weight: var(--sc-weight-bold) !important;
+    letter-spacing: var(--sc-tracking-normal) !important;
+}
+
+/* ============================================================
+   24. CANVAS LIST PAGE — Gate panel / canvas cards
+   ============================================================ */
+.gate-panel {
+    border-radius: var(--sc-radius-2xl) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    box-shadow: var(--sc-shadow-2xl),
+                inset 0 1px 0 rgba(255, 255, 255, 0.40) !important;
+    backdrop-filter: var(--sc-blur-xl) !important;
+    -webkit-backdrop-filter: var(--sc-blur-xl) !important;
+}
+
+.canvas-item {
+    border-radius: var(--sc-radius-xl) !important;
+    border: 1px solid var(--sc-border-subtle) !important;
+    transition:
+        background var(--sc-duration-fast) var(--sc-ease-material),
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring) !important;
+}
+
+.canvas-item:hover {
+    transform: translateY(-2px) !important;
+    border-color: var(--sc-border-base) !important;
+    box-shadow: var(--sc-shadow-md) !important;
+}
+
+.canvas-item.active {
+    border-color: var(--sc-accent) !important;
+    box-shadow: 0 0 0 1px var(--sc-accent), var(--sc-shadow-md) !important;
+}
+
+.canvas-card-title {
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    color: var(--sc-text-primary) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+}
+
+.canvas-card-time {
+    font-size: var(--sc-text-2xs) !important;
+    font-weight: var(--sc-weight-normal) !important;
+    color: var(--sc-text-tertiary) !important;
+}
+
+/* Gate title / name */
+.gate-title,
+.gate-name-input {
+    font-size: var(--sc-text-xl) !important;
+    font-weight: var(--sc-weight-bold) !important;
+    letter-spacing: var(--sc-tracking-tight) !important;
+    color: var(--sc-text-primary) !important;
+}
+
+/* Primary / secondary buttons on gate */
+.primary-btn,
+.canvas-open,
+.create-confirm,
+.gate-create-btn {
+    border-radius: var(--sc-radius-lg) !important;
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    letter-spacing: var(--sc-tracking-snug) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        filter var(--sc-duration-fast) var(--sc-ease-material),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring) !important;
+}
+
+.primary-btn:hover,
+.canvas-open:hover,
+.create-confirm:hover {
+    transform: translateY(-1px) !important;
+    filter: brightness(1.06) !important;
+    box-shadow: var(--sc-shadow-md) !important;
+}
+
+.primary-btn:active,
+.canvas-open:active,
+.create-confirm:active {
+    transform: scale(0.98) !important;
+    filter: brightness(0.95) !important;
+    transition-duration: var(--sc-duration-instant) !important;
+}
+
+.secondary-btn,
+.gate-back,
+.canvas-delete {
+    border-radius: var(--sc-radius-lg) !important;
+    font-size: var(--sc-text-sm) !important;
+    font-weight: var(--sc-weight-medium) !important;
+    border-color: var(--sc-border-base) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        border-color var(--sc-duration-fast) var(--sc-ease-material),
+        background var(--sc-duration-fast) var(--sc-ease-material) !important;
+}
+
+.secondary-btn:hover,
+.gate-back:hover {
+    transform: translateY(-1px) !important;
+    border-color: var(--sc-border-strong) !important;
+}
+
+/* ============================================================
+   25. SELECTION BOX (rubber-band)
+   ============================================================ */
+.select-box,
+#selectBox {
+    border: 1.5px solid var(--sc-accent) !important;
+    background: var(--sc-accent-surface) !important;
+    border-radius: var(--sc-radius-xs) !important;
+}
+
+/* ============================================================
+   26. CONNECTION LINES — SVG paths
+   ============================================================ */
+.connection-line {
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+}
+
+/* ============================================================
+   27. ZOOM CONTROLS (if any)
+   ============================================================ */
+.zoom-controls,
+[class*="zoom-btn"] {
+    border-radius: var(--sc-radius-full) !important;
+    border: 1px solid var(--sc-border-base) !important;
+    background: var(--sc-bg-panel) !important;
+    backdrop-filter: var(--sc-blur-md) !important;
+    -webkit-backdrop-filter: var(--sc-blur-md) !important;
+    box-shadow: var(--sc-shadow-md) !important;
+    font-size: var(--sc-text-xs) !important;
+    font-weight: var(--sc-weight-semibold) !important;
+    transition:
+        transform var(--sc-duration-fast) var(--sc-ease-spring),
+        box-shadow var(--sc-duration-fast) var(--sc-ease-spring) !important;
+}
+
+[class*="zoom-btn"]:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: var(--sc-shadow-lg) !important;
+}
+
+/* ============================================================
+   28. NODE RESIZE HANDLE
+   ============================================================ */
+.node-resize-handle {
+    opacity: 0 !important;
+    transition:
+        opacity var(--sc-duration-fast) var(--sc-ease-material),
+        transform var(--sc-duration-fast) var(--sc-ease-spring) !important;
+}
+
+.image-node:hover .node-resize-handle {
+    opacity: 1 !important;
+}
+
+.node-resize-handle:hover {
+    transform: scale(1.3) !important;
+}
+
+/* ============================================================
+   29. LOADING / PROGRESS STATES
+   ============================================================ */
+@keyframes sc-shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position: 200% 0; }
+}
+
+@keyframes sc-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes sc-pulse-soft {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.55; }
+}
+
+/* Skeleton shimmer for loading states */
+.node-loading,
+.image-loading-state {
+    background: linear-gradient(
+        90deg,
+        var(--sc-bg-inset) 25%,
+        rgba(148, 163, 184, 0.06) 50%,
+        var(--sc-bg-inset) 75%
+    ) !important;
+    background-size: 200% 100% !important;
+    animation: sc-shimmer 1.5s infinite linear !important;
+}
+
+/* ============================================================
+   30. MEDIA QUERIES — Reduced Transparency
+   ============================================================ */
+@media (prefers-reduced-transparency: reduce) {
+    .composer-card,
+    .smart-log-panel,
+    .shortcut-panel,
+    .workflow-panel,
+    .asset-panel,
+    .create-menu,
+    .smart-back,
+    .smart-log-toggle,
+    .smart-shortcut-toggle,
+    .smart-workflow-toggle,
+    .smart-minimap,
+    .selection-hub,
+    .asset-dock {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        background-color: var(--sc-bg-card) !important;
+    }
+}
+
+/* ============================================================
+   END OF DESIGN SYSTEM PATCH
+   ============================================================ */
