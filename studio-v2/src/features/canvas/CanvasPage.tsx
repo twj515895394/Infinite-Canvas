@@ -26,24 +26,52 @@ import { nodeRegistry, type InspectorField } from '@/features/canvas/registry'
 import { registerMvpNodes, nodeTypes, NODE_TYPES } from '@/features/canvas/nodes'
 import type { CanvasNode, CanvasEdge } from '@/features/canvas/ports'
 import { ImageGenInspector } from '@/features/generation/ImageGenInspector'
+import { VideoInspector } from '@/features/generation/VideoInspector'
 import { WorkflowInspector } from '@/features/generation/WorkflowInspector'
-import type { StableImageResult } from '@/features/generation/api'
 import { loadCanvas, saveCanvasSnapshot, isRevisionConflict } from '@/features/canvas/persistence'
 import { cn } from '@/core/utils/cn'
 
 registerMvpNodes()
 
-/** 节点结果缩略图来源：生成节点（图片/工作流）直接读自身 config.result（稳定引用）；输出节点收集上游结果。 */
-function resultUrlsFor(node: CanvasNode, nodes: CanvasNode[], edges: CanvasEdge[]): string[] {
+/** 从 config.result 收窄图片稳定引用（{urls}）的 url 列表；非该形状安全返回空。 */
+function stableUrlsOf(result: unknown): string[] {
+  if (result && typeof result === 'object' && 'urls' in result && Array.isArray(result.urls)) {
+    return result.urls.filter((u): u is string => typeof u === 'string')
+  }
+  return []
+}
+
+/** 从 config.result 收窄视频稳定引用（{videos}）的 url 列表；非该形状安全返回空。 */
+function stableVideosOf(result: unknown): string[] {
+  if (result && typeof result === 'object' && 'videos' in result && Array.isArray(result.videos)) {
+    return result.videos.filter((v): v is string => typeof v === 'string')
+  }
+  return []
+}
+
+/** 节点结果缩略图来源：生成节点（图片/工作流）读 config.result 图片稳定引用；
+ * 视频节点返回视频 url（MediaThumbnail 用 /api/media-preview 首帧作 poster，不整段加载）；
+ * 输出节点收集上游结果。kind 随来源传递（视频走 video 语义，图片/工作流走 image）。 */
+function resultUrlsFor(node: CanvasNode, nodes: CanvasNode[], edges: CanvasEdge[]): { url: string; kind: string }[] {
   if (node.type === 'image-generation' || node.type === 'workflow') {
-    return (node.config?.result as StableImageResult | undefined)?.urls ?? []
+    return stableUrlsOf(node.config?.result).map((url) => ({ url, kind: 'image' }))
+  }
+  if (node.type === 'video-generation') {
+    return stableVideosOf(node.config?.result).map((url) => ({ url, kind: 'video' }))
   }
   if (node.type === 'output') {
     const sources = edges
       .filter((e) => e.target === node.id)
       .map((e) => nodes.find((n) => n.id === e.source))
-      .filter((n): n is CanvasNode => n?.type === 'image-generation' || n?.type === 'workflow')
-    return sources.flatMap((n) => (n.config?.result as StableImageResult | undefined)?.urls ?? [])
+      .filter((n): n is CanvasNode =>
+        n?.type === 'image-generation' || n?.type === 'video-generation' || n?.type === 'workflow',
+      )
+    return sources.flatMap((n) => {
+      if (n.type === 'video-generation') {
+        return stableVideosOf(n.config?.result).map((url) => ({ url, kind: 'video' }))
+      }
+      return stableUrlsOf(n.config?.result).map((url) => ({ url, kind: 'image' }))
+    })
   }
   return []
 }
@@ -71,6 +99,14 @@ function InspectorPanel() {
       <div className="flex flex-col gap-3 p-3">
         <div className="text-xs font-medium text-text">图片生成 参数</div>
         <ImageGenInspector nodeId={node.id} config={node.config} updateConfig={updateConfig} />
+      </div>
+    )
+  }
+  if (def.type === 'video-generation') {
+    return (
+      <div className="flex flex-col gap-3 p-3">
+        <div className="text-xs font-medium text-text">视频生成 参数</div>
+        <VideoInspector nodeId={node.id} config={node.config} updateConfig={updateConfig} />
       </div>
     )
   }

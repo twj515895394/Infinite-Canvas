@@ -18,6 +18,7 @@ import {
   normalizeFieldOptions,
   submitImageTask,
   TASK_STATUS_LABELS,
+  useCodexStatus,
   type ImageParamsField,
   type ImageSubmitPayload,
 } from '@/features/generation/api'
@@ -139,6 +140,9 @@ export function ImageGenInspector({ nodeId, config, updateConfig }: ImageGenInsp
     (p) => p.enabled && (p.image_models?.length ?? 0) > 0,
   )
 
+  // Codex / GPT Image 2 Skill 探测（F7）：可用性提示 + 不可用原因（未安装/未登录）
+  const codexStatus = useCodexStatus()
+
   const providerId = String(config.provider ?? '')
   const model = String(config.model ?? '')
   const paramsQuery = useQuery({
@@ -233,6 +237,26 @@ export function ImageGenInspector({ nodeId, config, updateConfig }: ImageGenInsp
           ))}
         </select>
       </label>
+
+      {/* Codex / GPT Image 2 Skill 探测（F7）：选中 codex 时展示可用性，不可用明确提示原因 */}
+      {providerId === 'codex' && codexStatus.data && (
+        <div
+          className={cn(
+            'rounded-md border px-2.5 py-2 text-[11px] leading-relaxed',
+            !codexStatus.data.installed && 'border-danger/40 bg-danger/10 text-danger',
+            codexStatus.data.installed && !codexStatus.data.image2_helper_installed &&
+              'border-warning/40 bg-warning/10 text-warning',
+            codexStatus.data.installed && codexStatus.data.image2_helper_installed &&
+              'border-success/40 bg-success/10 text-success',
+          )}
+        >
+          {!codexStatus.data.installed
+            ? codexStatus.data.message || '未找到 OpenAI Codex CLI，请先安装并登录'
+            : codexStatus.data.image2_helper_installed
+              ? 'Codex CLI 可用：GPT Image 2 helper 已安装，可执行生图'
+              : 'Codex CLI 已安装，但缺少 GPT Image 2 helper，OpenAI CLI 生图不可用'}
+        </div>
+      )}
 
       {modelOptions.length > 0 && (
         <label className="flex flex-col gap-1">

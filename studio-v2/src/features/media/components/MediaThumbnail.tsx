@@ -30,12 +30,14 @@ export function MediaThumbnail({ url, kind = 'file', alt, width = 512, className
   }
   if (kind === 'video') {
     return (
+      // poster 复用 /api/media-preview 视频首帧（不整段加载，性能预算）；preload=metadata 仅取元数据
       <video
         src={url}
+        poster={thumbnailUrl(url, width)}
         muted
         playsInline
         preload="metadata"
-        className={cn('h-full w-full object-cover bg-black', className)}
+        className={cn('h-full w-full object-cover bg-ink', className)}
       />
     )
   }

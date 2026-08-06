@@ -66,9 +66,11 @@ export function registerMvpNodes(): void {
         { id: 'in', label: '提示词', kind: 'prompt', direction: 'input' },
         { id: 'out', label: '视频', kind: 'video', direction: 'output' },
       ],
+      // 实际参数表单由 VideoInspector 驱动（Provider/模型/时长/比例）；此处仅作兜底展示
       configSchema: [
         { key: 'prompt', label: 'Prompt', type: 'textarea' },
         { key: 'provider', label: 'Provider', type: 'select', options: [{ value: '', label: '默认' }] },
+        { key: 'duration', label: '时长（秒）', type: 'text' },
       ],
       validate: (config) => (String(config.prompt ?? '').trim() ? null : '请输入提示词'),
     }),
@@ -119,8 +121,8 @@ export interface StudioNodeData {
   nodeType: string
   config: Record<string, unknown>
   status?: string
-  /** 结果缩略图 URL（图片生成节点自身结果 / 输出节点上游结果）。 */
-  resultUrls?: string[]
+  /** 结果缩略图（生成节点自身结果 / 输出节点上游结果），kind 随来源传递（video/image）。 */
+  resultUrls?: { url: string; kind: string }[]
 }
 
 /** 任务状态展示（与 TaskShelf TASK_STATUS_LABELS 语义一致；本地维护避免 canvas→generation 依赖）。 */
@@ -180,9 +182,9 @@ export const StudioNodeHost = memo(function StudioNodeHost({ data, selected }: N
       </div>
       {resultUrls.length > 0 && (
         <div className="grid grid-cols-3 gap-1 border-t border-border p-1.5">
-          {resultUrls.slice(0, 6).map((url) => (
+          {resultUrls.slice(0, 6).map(({ url, kind }) => (
             <div key={url} className="aspect-square overflow-hidden rounded-md bg-bg">
-              <MediaThumbnail url={url} kind="image" alt="生成结果" width={160} />
+              <MediaThumbnail url={url} kind={kind === 'video' ? 'video' : 'image'} alt="生成结果" width={160} />
             </div>
           ))}
         </div>

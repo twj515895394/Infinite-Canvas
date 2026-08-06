@@ -1,9 +1,11 @@
-"""Studio V2 生成任务中心（F6 图片生成 + F8 ComfyUI 工作流 / Task Shelf 后端契约）。
+"""Studio V2 生成任务中心（F6 图片 + F8 ComfyUI 工作流 + F7 视频 / Task Shelf 后端契约）。
 
 独立轻量任务状态机（不复用旧 /api/canvas-image-tasks 的全局 Map）：
 - 图片任务：提交时惰性复用旧接口的生成执行（main.build_online_image_result），避免循环导入；
 - ComfyUI 任务（POST /comfy）：提交工作流字段值，复用旧 run_workflow（字段→节点覆盖映射 +
   generate 执行，同步函数跑线程池），供应商映射细节留在旧实现，前端只提交稳定 DTO；
+- 视频任务（POST /video）：复用旧 canvas_video（async 原生，长轮询由旧实现处理），
+  结果收敛为 v2 稳定引用视图（videos + video_items）；
 - 状态机：queued → running → succeeded | failed | cancelled；
   即梦云端排队时为 jimeng_pending，查询时惰性触发自动续查
   （main.jimeng_query_result + jimeng_store_outputs），轮询契约最终到达终态；
@@ -20,7 +22,7 @@ import os
 import threading
 import time
 import uuid
-from typing import Any, Dict, Set
+from typing import Any, Dict, Optional, Set
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -427,6 +429,125 @@ async def submit_comfy_task(payload: ComfySubmitRequest):
         _trim_overfull_store()
     if AUTO_RUN:
         handle = asyncio.create_task(run_comfy_task(task_id, payload))
+        with TASKS_LOCK:
+            HANDLES[task_id] = handle
+    return {"task": dict(task)}
+
+
+class VideoSubmitRequest(BaseModel):
+    """提交视频生成任务（字段与旧 CanvasVideoRequest 对齐，由后端 Adapter 转换）。
+    参考素材（images/videos/audios）MVP 不带；seed/upsample 可选透传。"""
+
+    prompt: str
+    provider_id: str = ""
+    model: str = ""
+    duration: int = Field(default=5, ge=1, le=60)
+    aspect_ratio: str = "16:9"
+    resolution: str = ""
+    size: str = ""
+    seed: Optional[int] = None
+    enable_upsample: bool = False
+
+
+def normalize_video_result(result: Dict[str, Any], req: Any) -> Dict[str, Any]:
+    """把旧 canvas_video 结果收敛为 v2 稳定引用视图：videos + video_items（url/kind/name）。
+    上游 raw（含供应商私有字段）不进视图；参数回显供 Task Shelf 展示。"""
+    videos = [str(u) for u in (result.get("videos") or []) if str(u or "").strip()]
+    video_items = [{"url": u, "kind": "video", "name": u.rsplit("/", 1)[-1]} for u in videos]
+    return {
+        "videos": videos,
+        "video_items": video_items,
+        "task_id": str(result.get("task_id") or ""),
+        "prompt": str(req.prompt or ""),
+        "provider_id": str(req.provider_id or ""),
+        "model": str(req.model or ""),
+        "timestamp": _now_ms(),
+        "params": {
+            "duration": req.duration,
+            "aspect_ratio": req.aspect_ratio,
+            "resolution": req.resolution,
+        },
+    }
+
+
+async def run_video_task(task_id: str, payload: VideoSubmitRequest) -> None:
+    """执行视频生成任务：复用旧 canvas_video（async 原生，长轮询在旧实现内），
+    结果回写状态机。Adapter 边界：本模块 DTO → 旧 CanvasVideoRequest。"""
+    from main import CanvasVideoRequest, canvas_video
+
+    _mark_running(task_id)
+    try:
+        legacy = CanvasVideoRequest(
+            prompt=str(payload.prompt or "").strip(),
+            provider_id=str(payload.provider_id or "").strip() or "comfly",
+            model=str(payload.model or "").strip() or "veo3-fast",
+            duration=payload.duration,
+            aspect_ratio=str(payload.aspect_ratio or "16:9").strip() or "16:9",
+            resolution=str(payload.resolution or "").strip(),
+            size=str(payload.size or "").strip(),
+            seed=payload.seed,
+            enable_upsample=payload.enable_upsample,
+        )
+        result = await canvas_video(legacy)
+        if not isinstance(result, dict) or not (result.get("videos") or []):
+            # 非 dict 结果先取值再抛错，避免 result.get 自身 AttributeError 掩盖真实原因
+            error_text = result.get("error") if isinstance(result, dict) else None
+            raise RuntimeError(str(error_text or "视频生成未返回结果"))
+        _update_task(
+            task_id,
+            status="succeeded",
+            result=normalize_video_result(result, legacy),
+            error="",
+            message="生成完成",
+        )
+    except HTTPException as exc:
+        # 供应商配置/上游错误（未配置 Key、Base URL、上游 4xx/5xx）
+        _update_task(task_id, status="failed", error=str(exc.detail), status_code=exc.status_code, message="生成失败")
+    except Exception as exc:
+        detail = getattr(exc, "detail", None) or str(exc)
+        status_code = getattr(exc, "status_code", 500)
+        _update_task(task_id, status="failed", error=str(detail), status_code=status_code, message="生成失败")
+    finally:
+        with TASKS_LOCK:
+            HANDLES.pop(task_id, None)
+
+
+@router.post("/video", status_code=202)
+async def submit_video_task(payload: VideoSubmitRequest):
+    """提交视频生成任务：立即返回 queued 任务，后台执行（旧 canvas_video 异步包装）。"""
+    prompt = str(payload.prompt or "").strip()
+    if not prompt:
+        raise V2Error(
+            ErrorCode.VALIDATION_FAILED,
+            422,
+            "缺少提示词",
+            detail="请填写视频提示词",
+            field_errors={"prompt": "请输入提示词"},
+        )
+    task_id = f"video_{uuid.uuid4().hex}"
+    now = _now_ms()
+    task = {
+        "id": task_id,
+        "type": "video",
+        "status": "queued",
+        "created_at": now,
+        "updated_at": now,
+        "result": None,
+        "error": "",
+        "message": "任务已提交",
+        "prompt": prompt,
+        "provider_id": str(payload.provider_id or "").strip(),
+        "model": str(payload.model or "").strip(),
+        "duration": payload.duration,
+        "aspect_ratio": str(payload.aspect_ratio or "16:9").strip(),
+        "resolution": str(payload.resolution or "").strip(),
+        "status_code": None,
+    }
+    with TASKS_LOCK:
+        GENERATION_TASKS[task_id] = task
+        _trim_overfull_store()
+    if AUTO_RUN:
+        handle = asyncio.create_task(run_video_task(task_id, payload))
         with TASKS_LOCK:
             HANDLES[task_id] = handle
     return {"task": dict(task)}

@@ -17,6 +17,16 @@ export interface ImageItem {
   height?: number
 }
 
+/** 视频稳定引用条目（F7）：url + 元数据（供 F12 输出入资产库）。 */
+export interface VideoItem {
+  url: string
+  kind: 'video'
+  name: string
+  width?: number
+  height?: number
+  duration_ms?: number
+}
+
 /** 生成成功结果（稳定引用：本地 url + 资产 item 元数据，供 F12 输出入资产库）。 */
 export interface ImageTaskResult {
   prompt?: string
@@ -29,13 +39,27 @@ export interface ImageTaskResult {
   task_id?: string
 }
 
+/** 视频生成成功结果（F7）：videos + video_items 稳定引用，raw 供应商字段不入视图。 */
+export interface VideoTaskResult {
+  prompt?: string
+  videos?: string[]
+  video_items?: VideoItem[]
+  provider_id?: string
+  model?: string
+  timestamp?: number
+  task_id?: string
+  params?: { duration?: number; aspect_ratio?: string; resolution?: string }
+}
+
+export type TaskResult = ImageTaskResult | VideoTaskResult
+
 export interface GenerationTask {
   id: string
-  type: 'image' | 'comfy'
+  type: 'image' | 'video' | 'comfy'
   status: GenerationTaskStatus
   created_at: number
   updated_at: number
-  result: ImageTaskResult | null
+  result: TaskResult | null
   error: string
   message: string
   prompt?: string
@@ -48,6 +72,12 @@ export interface GenerationTask {
   submit_id?: string | null
   kind?: string | null
   status_code?: number | null
+  /** 视频/工作流任务参数回显。 */
+  duration?: number
+  aspect_ratio?: string
+  resolution?: string
+  workflow?: string
+  field_values?: Record<string, unknown>
 }
 
 export interface ImageParamsField {
@@ -95,6 +125,25 @@ export function toStableResult(result: ImageTaskResult | null | undefined): Stab
   }
 }
 
+/** 视频结果写回节点 config 的稳定引用（F7，与图片 §3.5 同契约：只存引用）。 */
+export interface StableVideoResult {
+  videos: string[]
+  items: VideoItem[]
+}
+
+/** 从后端视频任务结果提取稳定引用。 */
+export function toStableVideoResult(result: VideoTaskResult | null | undefined): StableVideoResult {
+  return {
+    videos: result?.videos ?? [],
+    items: result?.video_items ?? [],
+  }
+}
+
+/** 从任务结果判断是否为视频结果（轮询投影按类型分派）。 */
+export function isVideoResult(result: TaskResult | null | undefined): result is VideoTaskResult {
+  return Boolean(result && 'videos' in result)
+}
+
 // ---------- 端点 ----------
 
 export function submitImageTask(payload: ImageSubmitPayload): Promise<{ task: GenerationTask }> {
@@ -130,6 +179,67 @@ export function getWorkflow(name: string): Promise<WorkflowDetail> {
 
 export function submitComfyTask(payload: ComfySubmitPayload): Promise<{ task: GenerationTask }> {
   return api.post('/api/v2/generation-tasks/comfy', payload)
+}
+
+// ---------- 视频生成（F7） ----------
+
+/** 提交视频生成任务：字段与旧 CanvasVideoRequest 对齐，供应商细节留在后端 Adapter。 */
+export interface VideoSubmitPayload {
+  prompt: string
+  provider_id: string
+  model: string
+  duration?: number
+  aspect_ratio?: string
+  resolution?: string
+  size?: string
+  seed?: number | null
+  enable_upsample?: boolean
+}
+
+/** 视频节点参数面板的时长/比例选项（与旧前端 veo 参数一致）。 */
+export const VIDEO_DURATIONS = [5, 8, 10] as const
+
+export const VIDEO_RATIOS: { value: string; label: string }[] = [
+  { value: '16:9', label: '16:9' },
+  { value: '9:16', label: '9:16' },
+  { value: '1:1', label: '1:1' },
+  { value: '4:3', label: '4:3' },
+  { value: '21:9', label: '21:9' },
+]
+
+/** 从节点 config 构造视频提交载荷（缺失字段回退默认值）。 */
+export function buildVideoPayload(config: Record<string, unknown>): VideoSubmitPayload {
+  return {
+    prompt: String(config.prompt ?? '').trim(),
+    provider_id: String(config.provider ?? '').trim(),
+    model: String(config.model ?? '').trim(),
+    duration: Number(config.duration ?? 5) || 5,
+    aspect_ratio: String(config.aspect_ratio ?? '16:9').trim() || '16:9',
+    resolution: String(config.resolution ?? '').trim(),
+    seed: config.seed === undefined || config.seed === null || config.seed === '' ? null : Number(config.seed),
+    enable_upsample: config.enable_upsample === true,
+  }
+}
+
+export function submitVideoTask(payload: VideoSubmitPayload): Promise<{ task: GenerationTask }> {
+  return api.post('/api/v2/generation-tasks/video', payload)
+}
+
+// ---------- Codex / GPT Image 2 Skill 探测（F7） ----------
+
+export interface CodexStatus {
+  installed: boolean
+  logged_in: boolean | null
+  version?: string
+  path?: string
+  image2_helper_installed: boolean
+  image2_helper_path?: string | null
+  message: string
+}
+
+/** 探测 Codex CLI / GPT Image 2 helper 状态（复用旧 /api/codex/status）。 */
+export function fetchCodexStatus(): Promise<CodexStatus> {
+  return api.get('/api/codex/status')
 }
 
 // ---------- 纯函数（可单测） ----------
@@ -275,5 +385,13 @@ export function useWorkflowList() {
   return useQuery({
     queryKey: ['workflows'],
     queryFn: () => listWorkflows(),
+  })
+}
+
+/** Codex / GPT Image 2 Skill 状态探测（图片生成节点 Codex 提示条）。 */
+export function useCodexStatus() {
+  return useQuery({
+    queryKey: ['codex-status'],
+    queryFn: () => fetchCodexStatus(),
   })
 }

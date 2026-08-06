@@ -26,10 +26,11 @@ import {
   isTaskActive,
   submitComfyTask,
   submitImageTask,
+  submitVideoTask,
   TASK_STATUS_LABELS,
   useGenerationTaskList,
 } from '@/features/generation/api'
-import type { ComfySubmitPayload, GenerationTaskStatus, ImageSubmitPayload } from '@/features/generation/api'
+import type { ComfySubmitPayload, GenerationTaskStatus, ImageSubmitPayload, VideoSubmitPayload } from '@/features/generation/api'
 import { refreshActiveTasks, useGenerationStore } from '@/features/generation/store'
 import type { TaskEntry } from '@/features/generation/store'
 
@@ -165,11 +166,13 @@ export function TaskShelf() {
   const retry = async (entry: TaskEntry) => {
     if (!entry.payload) return
     try {
-      // 按任务类型分派提交端点：ComfyUI 工作流 / 图片生成共用同一任务中心
+      // 按任务类型分派提交端点：图片 / 视频 / ComfyUI 工作流共用同一任务中心
       const { task } =
         entry.kind === 'comfy'
           ? await submitComfyTask(entry.payload as ComfySubmitPayload)
-          : await submitImageTask(entry.payload as ImageSubmitPayload)
+          : entry.kind === 'video'
+            ? await submitVideoTask(entry.payload as VideoSubmitPayload)
+            : await submitImageTask(entry.payload as ImageSubmitPayload)
       useGenerationStore.getState().upsert({
         taskId: task.id,
         kind: entry.kind,

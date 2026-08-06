@@ -10,17 +10,20 @@ import { useEditorStore } from '@/features/canvas/store'
 import {
   getImageTask,
   isTaskActive,
+  isVideoResult,
   toStableResult,
+  toStableVideoResult,
   type ComfySubmitPayload,
   type GenerationTaskStatus,
   type ImageSubmitPayload,
-  type ImageTaskResult,
+  type TaskResult,
+  type VideoSubmitPayload,
 } from '@/features/generation/api'
 
 export interface TaskEntry {
   taskId: string
-  /** 任务类型：图片生成 / ComfyUI 工作流（重试时按类型分派端点）。 */
-  kind?: 'image' | 'comfy'
+  /** 任务类型：图片生成 / 视频生成 / ComfyUI 工作流（重试时按类型分派端点）。 */
+  kind?: 'image' | 'video' | 'comfy'
   /** 发起任务的节点（画布节点）id；来自后端恢复的任务无此字段。 */
   nodeId?: string
   label: string
@@ -31,9 +34,9 @@ export interface TaskEntry {
   workflow?: string
   error?: string
   message?: string
-  result?: ImageTaskResult | null
+  result?: TaskResult | null
   /** 提交载荷快照（重试用；不可变，保证重试与原始提交一致）。 */
-  payload?: ImageSubmitPayload | ComfySubmitPayload | null
+  payload?: ImageSubmitPayload | VideoSubmitPayload | ComfySubmitPayload | null
   createdAt: number
   updatedAt: number
 }
@@ -90,11 +93,12 @@ export const useGenerationStore = create<GenerationStore>()((set) => ({
       const merged: TaskEntry[] = []
       for (const raw of tasks) {
         if (known.has(raw.id)) continue
-        const isComfy = raw.type === 'comfy'
+        const kind = raw.type === 'comfy' ? 'comfy' : raw.type === 'video' ? 'video' : 'image'
+        const label = raw.type === 'comfy' ? 'ComfyUI 工作流' : raw.type === 'video' ? '视频生成' : '生成任务'
         merged.push({
           taskId: raw.id,
-          kind: isComfy ? 'comfy' : 'image',
-          label: isComfy ? 'ComfyUI 工作流' : '生成任务',
+          kind,
+          label,
           workflow: raw.workflow,
           status: raw.status,
           createdAt: raw.created_at,
@@ -133,8 +137,13 @@ export async function refreshActiveTasks(): Promise<void> {
       // 节点运行态投影：即梦排队统一显示为运行中
       editor.setRuntime(entry.nodeId, task.status === 'jimeng_pending' ? 'running' : task.status)
       if (task.status === 'succeeded' && task.result) {
-        // 仅写回稳定引用（urls+items），任务详情/供应商字段不入画布持久化
-        editor.setNodeResult(entry.nodeId, toStableResult(task.result))
+        // 仅写回稳定引用：视频任务写 {videos, items}，图片/工作流写 {urls, items}；
+        // 任务详情/供应商字段不入画布持久化（§3.5）
+        if (isVideoResult(task.result)) {
+          editor.setNodeResult(entry.nodeId, toStableVideoResult(task.result))
+        } else {
+          editor.setNodeResult(entry.nodeId, toStableResult(task.result))
+        }
       }
     } catch (err) {
       // 仅 404（任务已过期/后端重启）视为终态失败；瞬时网络错误保留 active 下轮重试
