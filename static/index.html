@@ -23,11 +23,11 @@
             } catch(e) {}
         })();
     </script>
-    <script src="/static/vendor/js/tailwindcss-cdn.js?v=2026.08.01.1785292594"></script>
-    <script src="/static/js/theme.js?v=2026.08.01.1785292593"></script>
-    <script src="/static/js/i18n.js?v=2026.08.01.1785292592"></script>
+    <script src="/static/vendor/js/tailwindcss-cdn.js?v=2026.08.04.1785909579"></script>
+    <script src="/static/js/theme.js?v=2026.08.04.1785909579"></script>
+    <script src="/static/js/i18n.js?v=2026.08.04.1785909579"></script>
     <style>
-        @import url('/static/vendor/css/fonts.css?v=2026.08.01.1785292593');
+        @import url('/static/vendor/css/fonts.css?v=2026.08.04.1785909579');
 
         /* 本地 Tailwind 工具类兜底：CDN 慢/未就绪时也能立刻给图标尺寸，避免首屏左侧栏空白 */
         .w-1\.5 { width: 0.375rem; }
@@ -145,8 +145,8 @@
 
         /* 侧边栏 */
         .sidebar {
-            width: 80px;
-            min-width: 80px;
+            width: 72px;
+            min-width: 72px;
             height: 100vh;
             max-height: 100vh;
             background: var(--sidebar-bg);
@@ -154,14 +154,14 @@
             flex-direction: column;
             align-items: center;
             border-right: 1px solid var(--border);
-            padding: 40px 0;
-            transition: width 0.5s var(--fluid-ease) 0.5s, background 0.3s, border-color 0.3s;
+            padding: 20px 0 12px;
+            transition: width 0.4s var(--fluid-ease) 0.5s, background 0.3s, border-color 0.3s;
             z-index: 50;
             overflow: hidden;
         }
 
         .sidebar:hover {
-            width: 220px;
+            width: 210px;
             transition-delay: 0s;
         }
 
@@ -171,7 +171,7 @@
             zoom: var(--studio-ui-scale, 1);
         }
 
-        /* 首次加载时与 iframe 的 0.5s 淡入同步播放，避免侧栏"焊死"在原地造成视觉断层 */
+        /* 首次加载时与 iframe 的 0.5s 淡入同步播放 */
         @keyframes sidebar-enter {
             from { opacity: 0; transform: translateX(-6px); }
             to { opacity: 1; transform: translateX(0); }
@@ -181,10 +181,10 @@
         }
 
         .logo-ring {
-            width: 36px;
-            height: 36px;
-            border: 2px solid var(--text);
-            border-radius: 12px;
+            width: 34px;
+            height: 34px;
+            border: 1.5px solid var(--text);
+            border-radius: 10px;
             background: transparent;
             padding: 0;
             color: var(--text);
@@ -193,7 +193,7 @@
             justify-content: center;
             cursor: pointer;
             flex: 0 0 auto;
-            /* 仅保留 hover 真正会用到的属性过渡，避免 transition: all 因首屏属性补齐被意外触发 */
+            margin-bottom: 16px !important;
             transition: transform 0.6s var(--fluid-ease) 0.5s, border-radius 0.6s var(--fluid-ease) 0.5s, border-color 0.3s, background-color .18s, box-shadow .2s;
         }
 
@@ -207,13 +207,13 @@
         .logo-ring:focus-visible {
             background: var(--nav-hover-bg);
             border-color: var(--text);
-            box-shadow: 0 0 0 4px rgba(148, 163, 184, .16), 0 10px 24px rgba(15, 23, 42, .08);
+            box-shadow: 0 0 0 3px rgba(148, 163, 184, .16), 0 8px 18px rgba(15, 23, 42, .06);
             outline: none;
         }
 
         .logo-ring:hover #logo-dot,
         .logo-ring:focus-visible #logo-dot {
-            transform: scale(1.8);
+            transform: scale(1.6);
         }
 
         .logo-ring:active {
@@ -232,24 +232,23 @@
         /* 导航项 */
         .nav-item {
             position: relative;
-            width: 48px;
-            height: 48px;
-            flex: 0 0 48px;
-            margin: 10px 0;
+            width: 42px;
+            height: 38px;
+            flex: 0 0 38px;
+            margin: 3px 0;
             display: flex;
             align-items: center;
             justify-content: flex-start;
-            border-radius: 18px;
+            border-radius: 12px;
             cursor: pointer;
-            /* 只对 width 做带延迟的过渡（侧栏悬停展开效果）；background/color 不参与过渡，避免 active 切换时底色"流动" */
-            transition: width 0.3s var(--fluid-ease) 0.5s;
+            transition: width 0.28s var(--fluid-ease) 0.5s, background-color 0.15s, color 0.15s;
             color: var(--muted);
             overflow: hidden;
-            padding-left: 14px;
+            padding-left: 11px;
         }
 
         .sidebar:hover .nav-item {
-            width: 190px;
+            width: 184px;
             transition-delay: 0s;
         }
 
@@ -261,37 +260,39 @@
         .nav-item.active {
             background: var(--accent);
             color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
 
         html.theme-dark .nav-item.active,
         body.theme-dark .nav-item.active {
-            background: #f1f5f9;
+            background: #e2e8f0;
             color: #0f172a;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
 
         .nav-text {
             opacity: 0;
-            margin-left: 16px;
-            font-weight: 600;
-            font-size: 14px;
+            margin-left: 12px;
+            font-weight: 500;
+            font-size: 13px;
             white-space: nowrap;
-            transition: opacity 0.3s 0.5s;
+            transition: opacity 0.25s 0.5s;
         }
 
         .sidebar:hover .nav-text {
             opacity: 1;
-            transition-delay: 0.1s;
+            transition-delay: 0.08s;
         }
 
         .nav-fold-toggle {
             position: relative;
-            width: 48px;
-            height: 36px;
-            flex: 0 0 36px;
-            margin: 0 0 6px;
-            padding-left: 14px;
+            width: 42px;
+            height: 30px;
+            flex: 0 0 30px;
+            margin: 2px 0;
+            padding-left: 11px;
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: 10px;
             background: transparent;
             color: var(--muted);
             display: flex;
@@ -299,11 +300,11 @@
             justify-content: flex-start;
             cursor: pointer;
             overflow: hidden;
-            transition: width 0.3s var(--fluid-ease) 0.5s, background-color 0.2s, color 0.2s, border-color 0.2s;
+            transition: width 0.28s var(--fluid-ease) 0.5s, background-color 0.18s, color 0.18s, border-color 0.18s;
         }
 
         .sidebar:hover .nav-fold-toggle {
-            width: 190px;
+            width: 184px;
             transition-delay: 0s;
         }
 
@@ -314,8 +315,8 @@
         }
 
         .nav-fold-icon {
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
             flex: 0 0 auto;
             transition: transform 0.25s var(--fluid-ease);
         }
@@ -351,28 +352,17 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 0 0 6px;
+            padding: 0 0 4px;
             overscroll-behavior: contain;
-            scrollbar-gutter: stable;
             -webkit-overflow-scrolling: touch;
-            scrollbar-width: thin;
-            scrollbar-color: rgba(148, 163, 184, .34) transparent;
+            scrollbar-width: none !important; /* 彻底隐藏滚动条，保持全屏干净 */
         }
 
-        .sidebar::-webkit-scrollbar { width: 4px !important; }
-        .sidebar::-webkit-scrollbar-track { background: transparent !important; }
-        .sidebar::-webkit-scrollbar-thumb {
-            background: rgba(148, 163, 184, .34) !important;
-            border: 0 !important;
-            border-radius: 999px !important;
-        }
-
-        .sidebar nav::-webkit-scrollbar { width: 4px !important; }
-        .sidebar nav::-webkit-scrollbar-track { background: transparent !important; }
-        .sidebar nav::-webkit-scrollbar-thumb {
-            background: rgba(148, 163, 184, .34) !important;
-            border: 0 !important;
-            border-radius: 999px !important;
+        .sidebar::-webkit-scrollbar,
+        .sidebar nav::-webkit-scrollbar {
+            display: none !important;
+            width: 0 !important;
+            height: 0 !important;
         }
 
         .sidebar nav > * {
@@ -577,19 +567,21 @@
 
         .side-actions {
             margin-top:auto;
-            margin-bottom:12px;
+            margin-bottom:8px;
             display:flex;
             flex-direction:column;
             align-items:center;
-            gap:8px;
+            gap:5px;
             width:100%;
             flex:0 0 auto;
+            padding-top:6px;
+            border-top:1px solid var(--border);
         }
 
         .side-pill {
-            width:44px;
-            height:36px;
-            border-radius:999px;
+            width:42px;
+            height:32px;
+            border-radius:10px;
             background: transparent;
             border: 1px solid var(--border);
             color: var(--muted);
@@ -597,16 +589,16 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            /* 只过渡 hover/激活会改的属性，避免 all 触发延迟 */
-            transition: width 0.3s var(--fluid-ease) 0.5s, gap 0.3s var(--fluid-ease) 0.5s, background-color 0.2s, color 0.2s, border-color 0.2s;
+            transition: width 0.28s var(--fluid-ease) 0.5s, gap 0.28s var(--fluid-ease) 0.5s, background-color 0.18s, color 0.18s, border-color 0.18s;
             flex-shrink: 0;
             overflow:hidden;
-            gap:8px;
+            gap:0;
             position:relative;
         }
 
         .sidebar:hover .side-pill {
             width: 170px;
+            gap: 8px;
             transition-delay: 0s;
         }
 
@@ -637,21 +629,21 @@
         .side-pill.update-available::after {
             content:"NEW";
             position:absolute;
-            top:-7px;
-            right:-9px;
-            min-width:28px;
-            height:16px;
-            padding:0 5px;
+            top:-6px;
+            right:-8px;
+            min-width:26px;
+            height:14px;
+            padding:0 4px;
             border-radius:999px;
             background:#22c55e;
             display:flex;
             align-items:center;
             justify-content:center;
             color:#fff;
-            font-size:9px;
+            font-size:8.5px;
             font-weight:900;
             letter-spacing:.02em;
-            box-shadow:0 6px 16px rgba(34,197,94,.28), 0 0 0 3px rgba(34,197,94,.12);
+            box-shadow:0 4px 12px rgba(34,197,94,.28);
             pointer-events:none;
         }
 
@@ -659,24 +651,23 @@
         body.theme-dark .side-pill.update-available::after {
             background:#4ade80;
             color:#052e16;
-            box-shadow:0 6px 16px rgba(74,222,128,.22), 0 0 0 3px rgba(74,222,128,.12);
         }
 
-        .side-pill svg { width: 16px; height: 16px; flex:0 0 auto; }
+        .side-pill svg { width: 15px; height: 15px; flex:0 0 auto; }
         .settings-fold-chevron {
-            width: 13px !important;
-            height: 13px !important;
+            width: 12px !important;
+            height: 12px !important;
             margin-left: -2px;
             opacity: 0;
             max-width: 0;
             overflow: hidden;
-            transition: opacity 0.3s 0.5s, max-width 0.3s var(--fluid-ease) 0.5s, transform .22s var(--fluid-ease);
+            transition: opacity 0.25s 0.5s, max-width 0.25s var(--fluid-ease) 0.5s, transform .22s var(--fluid-ease);
         }
         .sidebar:hover .settings-fold-chevron,
         .sidebar.is-pinned .settings-fold-chevron {
             opacity: .72;
-            max-width: 16px;
-            transition-delay: .15s, .15s, 0s;
+            max-width: 14px;
+            transition-delay: .12s, .12s, 0s;
         }
         .settings-fold-toggle[aria-expanded="true"] .settings-fold-chevron {
             transform: rotate(180deg);
@@ -689,12 +680,12 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
             pointer-events: none;
-            transition: max-height .28s var(--fluid-ease), opacity .18s ease;
+            transition: max-height .25s var(--fluid-ease), opacity .16s ease;
         }
         .settings-fold-group:not(.is-collapsed) {
-            max-height: 132px;
+            max-height: 110px;
             opacity: 1;
             pointer-events: auto;
         }
@@ -702,24 +693,21 @@
             opacity:0;
             max-width:0;
             font-size:12px;
-            font-weight:800;
-            letter-spacing:.02em;
+            font-weight:600;
+            letter-spacing:.01em;
             white-space:nowrap;
             overflow:hidden;
-            transition: opacity 0.3s 0.5s, max-width 0.3s var(--fluid-ease) 0.5s;
+            transition: opacity 0.25s 0.5s, max-width 0.25s var(--fluid-ease) 0.5s;
         }
         .sidebar:hover .side-pill-text {
             opacity:1;
             max-width:120px;
-            transition-delay:.15s;
+            transition-delay:.12s;
         }
-        /* 折叠态去除 gap，避免图标被推偏 */
-        .side-pill { gap:0; }
-        .sidebar:hover .side-pill { gap:8px; }
 
         .project-version-badge {
-            width:44px;
-            min-height:18px;
+            width:42px;
+            min-height:16px;
             padding:0 4px;
             border-radius:999px;
             border:1px solid var(--border);
@@ -728,13 +716,13 @@
             display:flex;
             align-items:center;
             justify-content:center;
-            font-size:9px;
-            font-weight:800;
+            font-size:8.5px;
+            font-weight:700;
             line-height:1;
             white-space:nowrap;
             overflow:hidden;
             cursor:pointer;
-            transition:width 0.3s var(--fluid-ease) 0.5s, color .2s, border-color .2s, background-color .2s;
+            transition:width 0.28s var(--fluid-ease) 0.5s, color .18s, border-color .18s, background-color .18s;
         }
         .project-version-badge:hover { color:var(--text); border-color:var(--accent, #6366f1); }
         .project-version-badge.checking { opacity:.6; animation:badge-pulse 1s ease-in-out infinite; }
@@ -751,40 +739,40 @@
 
         .update-now-btn {
             display:none;
-            width:56px;
-            min-height:24px;
-            padding:0 7px;
+            width:48px;
+            min-height:22px;
+            padding:0 6px;
             border-radius:999px;
             border:1px solid rgba(34,197,94,.35);
             background:rgba(34,197,94,.1);
             color:#16a34a;
             align-items:center;
             justify-content:center;
-            gap:5px;
-            font-size:9px;
-            font-weight:900;
+            gap:4px;
+            font-size:8.5px;
+            font-weight:800;
             overflow:hidden;
-            transition:width 0.3s var(--fluid-ease) 0.5s, background-color .2s, color .2s, border-color .2s;
+            transition:width 0.28s var(--fluid-ease) 0.5s, background-color .18s, color .18s, border-color .18s;
         }
         .update-now-btn.show { display:flex; }
         .sidebar:hover .update-now-btn { width:170px; transition-delay:0s; }
         .update-now-btn:hover { background:#16a34a; color:#fff; border-color:#16a34a; }
         .update-now-btn[disabled] { opacity:.7; cursor:wait; }
-        .update-now-btn svg { display:none; width:14px; height:14px; flex:0 0 auto; }
+        .update-now-btn svg { display:none; width:13px; height:13px; flex:0 0 auto; }
         .sidebar:hover .update-now-btn svg { display:block; }
         .update-now-text {
             opacity:1;
-            max-width:42px;
+            max-width:38px;
             white-space:nowrap;
             overflow:hidden;
-            transition: opacity 0.3s 0.5s, max-width 0.3s var(--fluid-ease) 0.5s;
+            transition: opacity 0.25s 0.5s, max-width 0.25s var(--fluid-ease) 0.5s;
         }
         .update-action-prefix { display:none; }
         .update-version-full { display:none; }
         .sidebar:hover .update-version-compact { display:none; }
         .sidebar:hover .update-version-full { display:inline; }
         .sidebar:hover .update-action-prefix { display:inline; }
-        .sidebar:hover .update-now-text { max-width:130px; transition-delay:.15s; }
+        .sidebar:hover .update-now-text { max-width:130px; transition-delay:.12s; }
         .update-now-btn.show + .project-version-badge { display:none; }
         html.theme-dark .update-now-btn,
         body.theme-dark .update-now-btn {
@@ -801,13 +789,9 @@
 
         @media (max-height: 760px) {
             .sidebar {
-                padding: 18px 0 14px;
+                padding: 14px 0 10px;
                 overflow-y:hidden;
                 overflow-x:hidden;
-                overscroll-behavior:contain;
-                -webkit-overflow-scrolling:touch;
-                scrollbar-width:thin;
-                scrollbar-color:rgba(148,163,184,.34) transparent;
             }
             .sidebar nav {
                 flex:1 1 auto;
@@ -815,100 +799,102 @@
                 overflow-y:auto;
                 overflow-x:hidden;
                 padding-bottom:0;
+                scrollbar-width:none !important;
             }
-            .logo-ring { margin-bottom: 16px !important; }
+            .logo-ring { margin-bottom: 12px !important; }
             .nav-item {
-                height: 42px;
-                flex-basis: 42px;
-                margin: 5px 0;
-                border-radius: 15px;
+                height: 35px;
+                flex-basis: 35px;
+                margin: 2px 0;
+                border-radius: 10px;
             }
             .nav-fold-toggle {
-                height: 32px;
-                flex-basis: 32px;
-                margin-bottom: 4px;
-                border-radius: 14px;
+                height: 28px;
+                flex-basis: 28px;
+                margin-bottom: 3px;
+                border-radius: 9px;
             }
-            .nav-fold-group { max-height: 720px; }
-            .side-actions {
-                margin-top:auto;
-                margin-bottom:6px;
-                gap:5px;
-                padding-top:8px;
-                border-top:1px solid var(--border);
-            }
-            .settings-fold-group {
-                gap: 5px;
-            }
-            .settings-fold-group:not(.is-collapsed) {
-                max-height: 105px;
-            }
-            .side-pill {
-                height:30px;
-                flex-basis:30px;
-                width:40px;
-            }
-            .project-version-badge { width:40px; min-height:16px; font-size:8px; }
-            .update-now-btn.show { min-height:22px; width:48px; }
-            .author-box {
-                height:32px;
-                flex-basis:32px;
-            }
-            .dx-letter {
-                font-size:12px;
-            }
-        }
-
-        @media (max-height: 660px) {
-            .sidebar { padding: 12px 0; }
-            .sidebar nav {
-                flex:1 1 auto;
-                min-height:0;
-                overflow-y:auto;
-                overflow-x:hidden;
-                padding-bottom:0;
-            }
-            .logo-ring {
-                width:32px;
-                height:32px;
-                border-radius:10px;
-                margin-bottom:10px !important;
-            }
-            .nav-item {
-                height:38px;
-                flex-basis:38px;
-                margin:3px 0;
-                border-radius:14px;
-            }
-            .nav-fold-toggle { height:30px; flex-basis:30px; }
             .nav-fold-group { max-height: 720px; }
             .side-actions {
                 margin-top:auto;
                 margin-bottom:4px;
                 gap:4px;
-                padding-top:6px;
+                padding-top:5px;
+                border-top:1px solid var(--border);
             }
             .settings-fold-group {
-                gap: 4px;
+                gap: 3px;
             }
             .settings-fold-group:not(.is-collapsed) {
-                max-height: 102px;
+                max-height: 98px;
             }
             .side-pill {
-                height:30px;
-                flex-basis:30px;
-                width:38px;
-            }
-            .author-box {
                 height:28px;
                 flex-basis:28px;
+                width:38px;
+            }
+            .project-version-badge { width:38px; min-height:15px; font-size:8px; }
+            .update-now-btn.show { min-height:20px; width:44px; }
+            .author-box {
+                height:26px;
+                flex-basis:26px;
             }
             .dx-letter {
                 font-size:11px;
             }
-            .side-pill svg { width:15px; height:15px; }
-            .project-version-badge { width:38px; min-height:16px; font-size:8px; }
-            .update-now-btn.show { width:46px; min-height:22px; font-size:8px; }
+        }
+
+        @media (max-height: 660px) {
+            .sidebar { padding: 10px 0; }
+            .sidebar nav {
+                flex:1 1 auto;
+                min-height:0;
+                overflow-y:auto;
+                overflow-x:hidden;
+                padding-bottom:0;
+                scrollbar-width:none !important;
+            }
+            .logo-ring {
+                width:30px;
+                height:30px;
+                border-radius:8px;
+                margin-bottom:8px !important;
+            }
+            .nav-item {
+                height:32px;
+                flex-basis:32px;
+                margin:2px 0;
+                border-radius:9px;
+            }
+            .nav-fold-toggle { height:26px; flex-basis:26px; }
+            .nav-fold-group { max-height: 720px; }
+            .side-actions {
+                margin-top:auto;
+                margin-bottom:3px;
+                gap:3px;
+                padding-top:4px;
+            }
+            .settings-fold-group {
+                gap: 3px;
+            }
+            .settings-fold-group:not(.is-collapsed) {
+                max-height: 90px;
+            }
+            .side-pill {
+                height:26px;
+                flex-basis:26px;
+                width:36px;
+            }
+            .author-box {
+                height:24px;
+                flex-basis:24px;
+            }
+            .dx-letter {
+                font-size:10px;
+            }
+            .side-pill svg { width:14px; height:14px; }
+            .project-version-badge { width:36px; min-height:14px; font-size:7.5px; }
+            .update-now-btn.show { width:42px; min-height:20px; font-size:7.5px; }
         }
 
         .studio-modal[hidden] {
@@ -1672,16 +1658,16 @@
         </script>
 
         <main class="stage">
-            <iframe id="frame-zimage" data-src="/static/zimage.html?v=2026.08.01.1785725665" class="active" scrolling="yes"></iframe>
-            <iframe id="frame-enhance" data-src="/static/enhance.html?v=2026.08.01.1785725665" scrolling="yes"></iframe>
-            <iframe id="frame-klein" data-src="/static/klein.html?v=2026.08.01.1785725665" scrolling="yes"></iframe>
-            <iframe id="frame-angle" data-src="/static/angle.html?v=2026.08.01.1785725665" scrolling="yes"></iframe>
-            <iframe id="frame-online" data-src="/static/online.html?v=2026.08.01.1785725665" scrolling="yes"></iframe>
-            <iframe id="frame-gpt-chat" data-src="/static/gpt-chat.html?v=2026.08.01.1785725665" scrolling="yes"></iframe>
-            <iframe id="frame-asset-manager" data-src="/static/asset-manager.html?v=2026.08.01.1785725665" scrolling="yes"></iframe>
-            <iframe id="frame-api-settings" data-src="/static/api-settings.html?v=2026.08.01.1785725665" scrolling="yes"></iframe>
-            <iframe id="frame-comfyui-settings" data-src="/static/comfyui-settings.html?v=2026.08.01.1785725665" scrolling="yes"></iframe>
-            <iframe id="frame-canvas" data-src="/static/canvas-list.html?v=2026.08.01.1785725665" scrolling="yes"></iframe>
+            <iframe id="frame-zimage" data-src="/static/zimage.html?v=2026.08.04.1785912041" class="active" scrolling="yes"></iframe>
+            <iframe id="frame-enhance" data-src="/static/enhance.html?v=2026.08.04.1785912041" scrolling="yes"></iframe>
+            <iframe id="frame-klein" data-src="/static/klein.html?v=2026.08.04.1785912041" scrolling="yes"></iframe>
+            <iframe id="frame-angle" data-src="/static/angle.html?v=2026.08.04.1785912041" scrolling="yes"></iframe>
+            <iframe id="frame-online" data-src="/static/online.html?v=2026.08.04.1785912041" scrolling="yes"></iframe>
+            <iframe id="frame-gpt-chat" data-src="/static/gpt-chat.html?v=2026.08.04.1785912041" scrolling="yes"></iframe>
+            <iframe id="frame-asset-manager" data-src="/static/asset-manager.html?v=2026.08.04.1785912041" scrolling="yes"></iframe>
+            <iframe id="frame-api-settings" data-src="/static/api-settings.html?v=2026.08.04.1785912041" scrolling="yes"></iframe>
+            <iframe id="frame-comfyui-settings" data-src="/static/comfyui-settings.html?v=2026.08.04.1785912041" scrolling="yes"></iframe>
+            <iframe id="frame-canvas" data-src="/static/canvas-list.html?v=2026.08.04.1785912041" scrolling="yes"></iframe>
 
         </main>
     </div>
