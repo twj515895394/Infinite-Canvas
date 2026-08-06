@@ -25,18 +25,26 @@ import { useEditorStore, type CanvasMeta } from '@/features/canvas/store'
 import { nodeRegistry, type InspectorField } from '@/features/canvas/registry'
 import { registerMvpNodes, nodeTypes, NODE_TYPES } from '@/features/canvas/nodes'
 import type { CanvasNode, CanvasEdge } from '@/features/canvas/ports'
+import { ImageGenInspector } from '@/features/generation/ImageGenInspector'
+import type { ImageTaskResult } from '@/features/generation/api'
 import { loadCanvas, saveCanvasSnapshot, isRevisionConflict } from '@/features/canvas/persistence'
 import { cn } from '@/core/utils/cn'
 
 registerMvpNodes()
 
-function toRfNode(n: CanvasNode): RFNode {
-  return {
-    id: n.id,
-    type: 'studio-node',
-    position: n.position,
-    data: { nodeType: n.type, config: n.config ?? {} },
+/** 节点结果缩略图来源：图片生成节点直接读自身 config.result；输出节点收集上游结果（输出节点引用结果）。 */
+function resultUrlsFor(node: CanvasNode, nodes: CanvasNode[], edges: CanvasEdge[]): string[] {
+  if (node.type === 'image-generation') {
+    return (node.config?.result as ImageTaskResult | undefined)?.images ?? []
   }
+  if (node.type === 'output') {
+    const sources = edges
+      .filter((e) => e.target === node.id)
+      .map((e) => nodes.find((n) => n.id === e.source))
+      .filter((n): n is CanvasNode => n?.type === 'image-generation')
+    return sources.flatMap((n) => (n.config?.result as ImageTaskResult | undefined)?.images ?? [])
+  }
+  return []
 }
 
 function toRfEdge(e: CanvasEdge): RFEdge {
@@ -54,6 +62,14 @@ function InspectorPanel() {
     return (
       <div className="flex h-full items-center justify-center px-4 text-center text-xs text-text-faint">
         选中节点后在此编辑参数
+      </div>
+    )
+  }
+  if (def.type === 'image-generation') {
+    return (
+      <div className="flex flex-col gap-3 p-3">
+        <div className="text-xs font-medium text-text">图片生成 参数</div>
+        <ImageGenInspector nodeId={node.id} config={node.config} updateConfig={updateConfig} />
       </div>
     )
   }
@@ -251,7 +267,25 @@ function CanvasWorkspace() {
     return id
   }
 
-  const rfNodes = useMemo(() => nodes.map(toRfNode), [nodes])
+  const runtime = useEditorStore((s) => s.runtime)
+  const selection = useEditorStore((s) => s.selection)
+  const rfNodes = useMemo(
+    () =>
+      nodes.map((n) => ({
+        id: n.id,
+        type: 'studio-node',
+        position: n.position,
+        // selected 必须回传：React Flow 以 prop 为准，不回传会在节点 prop 更新时清空内部选择
+        selected: selection.nodeIds.includes(n.id),
+        data: {
+          nodeType: n.type,
+          config: n.config ?? {},
+          status: runtime[n.id],
+          resultUrls: resultUrlsFor(n, nodes, edges),
+        },
+      })),
+    [nodes, edges, runtime, selection],
+  )
   const rfEdges = useMemo(() => edges.map(toRfEdge), [edges])
 
   if (loading) {

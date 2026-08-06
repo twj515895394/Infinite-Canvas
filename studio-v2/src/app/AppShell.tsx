@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { IconButton } from '@/components/ui/button'
 import { cn } from '@/core/utils/cn'
+import { TaskShelf as GenerationTaskShelf } from '@/features/generation/TaskShelf'
 import { applyAppearance, useAppearance } from '@/features/settings/appearance'
 
 const NAV_ITEMS = [
@@ -84,12 +85,7 @@ function Inspector() {
 }
 
 function TaskShelf() {
-  return (
-    <div className="flex h-16 shrink-0 items-center gap-2 border-t border-border bg-surface px-4">
-      <span className="text-xs text-text-faint">Task Shelf</span>
-      <span className="text-xs text-text-faint">· 任务状态将在此展示（MVP 阶段）</span>
-    </div>
-  )
+  return <GenerationTaskShelf />
 }
 
 export default function AppShell({ children }: { children?: ReactNode }) {

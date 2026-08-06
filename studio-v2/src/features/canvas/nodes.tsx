@@ -8,6 +8,7 @@ import { Image, Film, Workflow, Box, FileText, FolderTree, Wand2, Type } from 'l
 import type { ComponentType } from 'react'
 import { nodeRegistry, type NodeDefinition } from '@/features/canvas/registry'
 import { cn } from '@/core/utils/cn'
+import { MediaThumbnail } from '@/features/media/components/MediaThumbnail'
 
 export const NODE_TYPES = ['asset', 'prompt', 'image-generation', 'video-generation', 'workflow', 'output', 'group', 'artifact'] as const
 
@@ -117,22 +118,26 @@ export interface StudioNodeData {
   nodeType: string
   config: Record<string, unknown>
   status?: string
+  /** 结果缩略图 URL（图片生成节点自身结果 / 输出节点上游结果）。 */
+  resultUrls?: string[]
 }
 
 /** 统一节点 Host：标题 + 状态 + 输入/输出端口 */
 export const StudioNodeHost = memo(function StudioNodeHost({ data, selected }: NodeProps) {
-  const { nodeType, config = {}, status } = (data ?? {}) as unknown as StudioNodeData
+  const { nodeType, config = {}, status, resultUrls = [] } = (data ?? {}) as unknown as StudioNodeData
   const def = nodeRegistry.get(nodeType)
   const Icon = NODE_ICONS[nodeType] ?? Box
   if (!def) {
     return <div className="rounded-lg border border-danger/50 bg-surface px-3 py-2 text-xs text-danger">未知节点 {nodeType}</div>
   }
+  const running = status === 'running' || status === 'queued'
   return (
     <div
       className={cn(
         'w-48 rounded-lg border bg-surface-raised shadow-sm',
         'transition-[border-color,box-shadow] duration-[120ms]',
         selected ? 'border-accent shadow-[0_0_0_1px_rgba(91,140,255,0.5)]' : 'border-border',
+        running && 'border-warning/60',
       )}
     >
       {/* 输入端口（左侧） */}
@@ -160,6 +165,15 @@ export const StudioNodeHost = memo(function StudioNodeHost({ data, selected }: N
       <div className="truncate border-t border-border px-3 py-1.5 text-[11px] text-text-faint">
         {String(config.prompt ?? config.workflow ?? config.title ?? config.label ?? '') || '未配置'}
       </div>
+      {resultUrls.length > 0 && (
+        <div className="grid grid-cols-3 gap-1 border-t border-border p-1.5">
+          {resultUrls.slice(0, 6).map((url) => (
+            <div key={url} className="aspect-square overflow-hidden rounded-md bg-bg">
+              <MediaThumbnail url={url} kind="image" alt="生成结果" width={160} />
+            </div>
+          ))}
+        </div>
+      )}
       {/* 输出端口（右侧） */}
       {def.ports
         .filter((p) => p.direction === 'output')

@@ -55,6 +55,8 @@ interface EditorStore extends CanvasState {
   commitDrag(id: string): void
   setDirty(value: boolean): void
   setRuntime(nodeId: string, status: string): void
+  /** 生成成功结果写回节点 config.result（运行时写入，不进 undo 栈；持久化由保存流程覆盖）。 */
+  setNodeResult(nodeId: string, result: unknown): void
   loadCanvas(meta: CanvasMeta, state: CanvasState): void
   reset(): void
 }
@@ -164,6 +166,11 @@ export const useEditorStore = create<EditorStore>()((set, get) => ({
 
   setDirty: (value) => set({ dirty: value }),
   setRuntime: (nodeId, status) => set((s) => ({ runtime: { ...s.runtime, [nodeId]: status } })),
+  setNodeResult: (nodeId, result) =>
+    set((s) => ({
+      nodes: s.nodes.map((n) => (n.id === nodeId ? { ...n, config: { ...n.config, result } } : n)),
+      dirty: true,
+    })),
 
   loadCanvas: (meta, state) =>
     set({

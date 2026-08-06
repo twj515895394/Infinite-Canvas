@@ -5,8 +5,9 @@ from fastapi import APIRouter
 from API.v2.asset_collections import router as asset_collections_router
 from API.v2.assets import router as assets_router
 from API.v2.bootstrap import router as bootstrap_router
-from API.v2.projects import router as projects_router
 from API.v2.canvases import router as canvases_router
+from API.v2.generation_tasks import router as generation_tasks_router
+from API.v2.projects import router as projects_router
 
 v2_router = APIRouter(prefix="/api/v2")
 
@@ -15,3 +16,4 @@ v2_router.include_router(projects_router)
 v2_router.include_router(canvases_router)
 v2_router.include_router(assets_router)
 v2_router.include_router(asset_collections_router)
+v2_router.include_router(generation_tasks_router)
