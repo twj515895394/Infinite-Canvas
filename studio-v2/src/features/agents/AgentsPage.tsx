@@ -6,11 +6,14 @@
  */
 import { useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { Bot } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/core/utils/cn'
 import { AgentsTab } from '@/features/agents/components/AgentsTab'
 import { RuntimesTab } from '@/features/agents/components/RuntimesTab'
 import { SkillsTab } from '@/features/agents/components/SkillsTab'
 import { TasksTab } from '@/features/agents/components/TasksTab'
+import { useDockStore } from '@/features/agents/dockStore'
 
 const TABS = [
   { id: 'agents', label: 'Agents' },
@@ -27,11 +30,17 @@ export default function AgentsPage() {
 
   return (
     <div className="mx-auto flex h-full w-full max-w-4xl flex-col gap-4 overflow-y-auto px-6 py-8">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-lg font-semibold tracking-tight text-text">Agent Center</h1>
-        <p className="text-sm text-text-muted">
-          管理 Agents、Skills、Runtimes 与 Tasks，完成配置 → 探测 → 绑定 → 测试运行闭环。
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-lg font-semibold tracking-tight text-text">Agent Center</h1>
+          <p className="text-sm text-text-muted">
+            管理 Agents、Skills、Runtimes 与 Tasks，完成配置 → 探测 → 绑定 → 测试运行闭环。
+          </p>
+        </div>
+        <Button size="sm" variant="primary" onClick={() => useDockStore.getState().openDock({ source: 'agents' })}>
+          <Bot className="size-3.5" aria-hidden />
+          打开 Agent Dock
+        </Button>
       </header>
 
       {/* 分段控件：选中态用 accent 底，切换反馈 ≤120ms */}

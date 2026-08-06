@@ -4,7 +4,7 @@
  * - 版本列表来自资产详情（GET /assets/{id} 的 versions[]，version_no 倒序），展示基础历史版本；
  * - 操作（编辑/移入回收站）回调页面统一处理，保持单一路径。
  */
-import { Download, Loader2, Pencil, Trash2 } from 'lucide-react'
+import { Bot, Download, Loader2, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { MediaPreview } from '@/features/media/components/MediaPreview'
@@ -76,11 +76,14 @@ export function PreviewDialog({
   onClose,
   onEdit,
   onTrash,
+  onUseAgent,
 }: {
   asset: AssetSummary | null
   onClose: () => void
   onEdit: (asset: AssetSummary) => void
   onTrash: (asset: AssetSummary) => void
+  /** 选中素材 → 打开 Agent Dock（F14）。 */
+  onUseAgent?: (asset: AssetSummary) => void
 }) {
   const version = asset?.current_version ?? null
   return (
@@ -122,6 +125,16 @@ export function PreviewDialog({
             <Button variant="ghost" size="sm" onClick={onClose}>
               关闭
             </Button>
+            {onUseAgent && (
+              <Button
+                variant="primary"
+                size="sm"
+                disabled={!asset.current_version}
+                onClick={() => onUseAgent(asset)}
+              >
+                <Bot size={13} aria-hidden /> 使用 Agent
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={() => onEdit(asset)}>
               <Pencil size={13} aria-hidden /> 编辑
             </Button>

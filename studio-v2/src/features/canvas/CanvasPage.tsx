@@ -20,7 +20,7 @@ import {
   type EdgeChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Plus, Undo2, Redo2, Trash2, Save, Loader2 } from 'lucide-react'
+import { Plus, Undo2, Redo2, Trash2, Save, Loader2, Bot } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { useEditorStore, type CanvasMeta } from '@/features/canvas/store'
@@ -34,6 +34,7 @@ import { VideoInspector } from '@/features/generation/VideoInspector'
 import { WorkflowInspector } from '@/features/generation/WorkflowInspector'
 import { loadCanvas, saveCanvasSnapshot, isRevisionConflict } from '@/features/canvas/persistence'
 import { cn } from '@/core/utils/cn'
+import { useDockStore, nodeToContextRef } from '@/features/agents/dockStore'
 
 registerMvpNodes()
 
@@ -497,6 +498,24 @@ function CanvasWorkspace() {
           }}
         >
           <Trash2 size={15} aria-hidden />
+        </IconButton>
+        <div className="mx-1 h-5 w-px bg-border" />
+        <IconButton
+          label="打开 Agent Dock（带入选中节点）"
+          size="sm"
+          onClick={() => {
+            const s = store.getState()
+            const selected = s.nodes.filter((n) => s.selection.nodeIds.includes(n.id))
+            const refs = selected.map(nodeToContextRef)
+            useDockStore.getState().openDock({
+              source: 'canvas',
+              projectId: s.meta?.projectId ?? null,
+              canvasId: s.meta?.id ?? canvasId ?? null,
+              contextRefs: refs,
+            })
+          }}
+        >
+          <Bot size={15} aria-hidden />
         </IconButton>
         <div className="mx-1 h-5 w-px bg-border" />
         <div className="flex items-center gap-1.5 px-2">

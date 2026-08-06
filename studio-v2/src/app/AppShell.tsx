@@ -1,10 +1,11 @@
 /**
  * App Shell：四区布局（契约：docs/studio-v2-information-architecture-and-core-workflows.md）
  * - 左侧主导航（两级）
- * - TopBar（项目/页面上下文）
+ * - TopBar（项目/页面上下文 + Agent Dock 入口）
  * - Main 工作区
  * - 右侧 Inspector（340px，MVP 阶段为占位）
- * - 底部 Task Shelf（MVP 阶段为占位）
+ * - 底部 Task Shelf
+ * - Agent Dock（F14，全局浮层）
  */
 import type { ReactNode } from 'react'
 import { useEffect } from 'react'
@@ -20,6 +21,8 @@ import { IconButton } from '@/components/ui/button'
 import { cn } from '@/core/utils/cn'
 import { TaskShelf as GenerationTaskShelf } from '@/features/generation/TaskShelf'
 import { applyAppearance, useAppearance } from '@/features/settings/appearance'
+import { AgentDock } from '@/features/agents/components/AgentDock'
+import { useDockStore } from '@/features/agents/dockStore'
 
 const NAV_ITEMS = [
   { to: '/projects', label: '项目', icon: FolderOpen },
@@ -57,6 +60,7 @@ function SideNav() {
 }
 
 function TopBar() {
+  const openDock = useDockStore((s) => s.openDock)
   return (
     <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-surface px-4">
       <div className="flex items-center gap-2 text-sm font-medium text-text">
@@ -65,6 +69,9 @@ function TopBar() {
         <span>个人创作画布</span>
       </div>
       <div className="flex items-center gap-1">
+        <IconButton label="打开 Agent Dock" size="sm" onClick={() => openDock({ source: 'shell' })}>
+          <Bot size={15} aria-hidden />
+        </IconButton>
         <IconButton label="命令面板（占位）" size="sm">
           <Command size={15} aria-hidden />
         </IconButton>
@@ -112,6 +119,7 @@ export default function AppShell({ children }: { children?: ReactNode }) {
         <Inspector />
       </div>
       <TaskShelf />
+      <AgentDock />
     </div>
   )
 }

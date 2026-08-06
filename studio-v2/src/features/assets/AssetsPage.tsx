@@ -26,6 +26,7 @@ import {
   type AssetSort,
   type AssetSummary,
 } from '@/features/assets/api'
+import { assetToContextRef, useDockStore } from '@/features/agents/dockStore'
 
 /** 本地防抖：输入变化后延迟触发服务端查询，避免每键一次请求。 */
 function useDebouncedValue(value: string, delay: number): string {
@@ -275,6 +276,15 @@ export default function AssetsPage() {
         onClose={() => setDialog(null)}
         onEdit={(asset) => setDialog({ kind: 'edit', asset })}
         onTrash={(asset) => setDialog({ kind: 'delete', asset })}
+        onUseAgent={(asset) => {
+          const ref = assetToContextRef(asset)
+          useDockStore.getState().openDock({
+            source: 'assets',
+            projectId: asset.project_id,
+            contextRefs: ref ? [ref] : [],
+          })
+          setDialog(null)
+        }}
       />
 
       <EditDialog asset={dialog?.kind === 'edit' ? dialog.asset : null} onClose={() => setDialog(null)} />
