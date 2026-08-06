@@ -1398,4 +1398,115 @@ textarea,
     cursor: text !important;
 }
 
+
+/* ==================================================================
+   § 8  REFINED NODE COMPONENTS (节点组件紧凑与精细化重塑)
+   ================================================================== */
+
+/* 1. 节点主体容器尺寸解臃与边角平滑 */
+.node {
+    min-width: 180px !important;
+    min-height: 68px !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 30px var(--shadow), 0 2px 8px rgba(15, 23, 42, 0.04) !important;
+}
+
+.node::before {
+    border-radius: 16px !important;
+}
+
+/* 2. 节点头部标题栏 (Node Header & Title) — 高度紧凑化与优雅字形 */
+.node-head {
+    height: 34px !important;
+    flex: 0 0 34px !important;
+    padding: 0 10px !important;
+    gap: 6px !important;
+    border-radius: 15px 15px 0 0 !important;
+}
+
+.node-title {
+    font-size: 11.5px !important;
+    font-weight: 750 !important;
+    letter-spacing: -0.01em !important;
+    text-transform: none !important;
+    opacity: 0.88;
+}
+
+/* 3. 节点内容区 (Node Body & Internal Fields) — 精简过大留白 */
+.node-body {
+    padding: 8px 10px !important;
+}
+
+.node.sized .node-body {
+    padding: 8px 10px !important;
+}
+
+/* 内部输入框、下拉菜单与文本区域精细化 */
+.node input,
+.node textarea,
+.node select,
+.node .select-lite,
+.loop-smart-text,
+.prompt-node-text {
+    border-radius: 8px !important;
+    font-size: 11.5px !important;
+    padding: 6px 8px !important;
+    line-height: 1.45 !important;
+}
+
+/* 4. 轻量级节点 (Prompt / Loop / LLM / Output Nodes) 特别精简 */
+.video-node {
+    width: 340px !important;
+}
+
+.prompt-node,
+.loop-node,
+.output-node,
+.llm-node {
+    min-width: 190px !important;
+}
+
+.gen-run-row {
+    margin-top: 6px !important;
+    gap: 6px !important;
+}
+
+.gen-run-row .gen-btn,
+.gen-run-row .comfy-run,
+.gen-run-row .llm-run {
+    height: 32px !important;
+    flex: 0 0 32px !important;
+    border-radius: 10px !important;
+    font-size: 11.5px !important;
+}
+
+/* 5. 一键运行级联徽章与重试栏 */
+.node-run-status {
+    padding: 1px 6px !important;
+    border-radius: 5px !important;
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+}
+
+.node-retry-bar {
+    margin-top: 6px !important;
+    padding: 5px 8px !important;
+    border-radius: 8px !important;
+}
+
+/* 6. 节点拉伸 Handle 与悬浮 Action 按钮置顶对齐 */
+.resize-handle {
+    right: 5px !important;
+    bottom: 5px !important;
+    width: 16px !important;
+    height: 16px !important;
+    border-radius: 6px !important;
+}
+
+.floating-node-actions {
+    right: 6px !important;
+    top: 6px !important;
+    gap: 4px !important;
+}
+
 /* END */
