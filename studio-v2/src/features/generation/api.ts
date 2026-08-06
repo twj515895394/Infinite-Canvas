@@ -120,6 +120,18 @@ export function fetchImageParams(providerId: string, model: string): Promise<{ f
   return api.get(`/api/image-params?${qs.toString()}`)
 }
 
+export function listWorkflows(): Promise<{ workflows: WorkflowInfo[] }> {
+  return api.get('/api/workflows')
+}
+
+export function getWorkflow(name: string): Promise<WorkflowDetail> {
+  return api.get(`/api/workflows/${encodeWorkflowPath(name)}`)
+}
+
+export function submitComfyTask(payload: ComfySubmitPayload): Promise<{ task: GenerationTask }> {
+  return api.post('/api/v2/generation-tasks/comfy', payload)
+}
+
 // ---------- 纯函数（可单测） ----------
 
 /** 旧前端 SIZE_MAP 的等价映射（ratio label → 尺寸字符串）。 */
@@ -176,6 +188,75 @@ export function buildSubmitPayload(config: Record<string, unknown>): ImageSubmit
   }
 }
 
+// ---------- ComfyUI 工作流（F8） ----------
+
+/** 工作流 config 字段定义（等价后端 WorkflowField，含磁盘上的额外键 bind_prompt）。 */
+export interface WorkflowFieldDef {
+  id: string
+  node?: string
+  input?: string
+  name?: string
+  type?: string
+  default?: unknown
+  min?: number | null
+  max?: number | null
+  step?: number | null
+  options?: string[]
+  random_enabled?: boolean
+  bind_prompt?: boolean | null
+}
+
+export interface WorkflowInfo {
+  name: string
+  title: string
+  builtin: boolean
+  field_count: number
+}
+
+export interface WorkflowDetail {
+  name: string
+  workflow: Record<string, unknown>
+  config: { title?: string; fields?: WorkflowFieldDef[] }
+  builtin: boolean
+}
+
+/** 提交 ComfyUI 工作流任务：字段值按工作流 config 字段 id 键控，映射由后端完成。 */
+export interface ComfySubmitPayload {
+  workflow: string
+  field_values: Record<string, unknown>
+}
+
+/** 工作流名含路径分隔符（custom/xxx.json），逐段编码以保留斜杠（后端 {name:path}）。 */
+export function encodeWorkflowPath(name: string): string {
+  return name
+    .split('/')
+    .map((s) => encodeURIComponent(s))
+    .join('/')
+}
+
+/** 字段缺省值按类型回退（与旧前端 comfyFields 语义一致）。 */
+export function workflowFieldDefault(field: WorkflowFieldDef): unknown {
+  if (field.type === 'boolean') return false
+  if (field.type === 'number' || field.type === 'slider') return 0
+  return ''
+}
+
+/** 取字段当前值：config.field_values[id] ?? 字段 default ?? 类型缺省。 */
+export function workflowFieldValue(config: Record<string, unknown>, field: WorkflowFieldDef): unknown {
+  const values = (config.field_values ?? {}) as Record<string, unknown>
+  if (values[field.id] !== undefined) return values[field.id]
+  if (field.default !== undefined && field.default !== null) return field.default
+  return workflowFieldDefault(field)
+}
+
+/** 从节点 config 构造 ComfyUI 提交载荷（缺失字段回退默认值）。 */
+export function buildComfyPayload(config: Record<string, unknown>): ComfySubmitPayload {
+  return {
+    workflow: String(config.workflow ?? '').trim(),
+    field_values: { ...((config.field_values ?? {}) as Record<string, unknown>) },
+  }
+}
+
 // ---------- TQ hooks ----------
 
 export const generationKeys = { all: ['generation-tasks'] as const }
@@ -186,5 +267,13 @@ export function useGenerationTaskList(limit = 30) {
     queryKey: [...generationKeys.all, 'list', limit],
     queryFn: () => listGenerationTasks(limit),
     refetchInterval: 10_000,
+  })
+}
+
+/** 已注册工作流列表（Workflow 节点选择器；无可用时前端空状态引导配置）。 */
+export function useWorkflowList() {
+  return useQuery({
+    queryKey: ['workflows'],
+    queryFn: () => listWorkflows(),
   })
 }

@@ -273,7 +273,7 @@ export function ImageGenInspector({ nodeId, config, updateConfig }: ImageGenInsp
           </Button>
         )}
         {!currentTask && lastFailed && (
-          <Button variant="default" size="sm" onClick={() => run(lastFailed.payload ?? undefined)}>
+          <Button variant="default" size="sm" onClick={() => run(lastFailed.payload as ImageSubmitPayload | undefined)}>
             <RotateCcw size={13} aria-hidden />
             重试
           </Button>

@@ -1,7 +1,9 @@
-"""Studio V2 生成任务（F6 图片生成闭环 / Task Shelf 后端契约）。
+"""Studio V2 生成任务中心（F6 图片生成 + F8 ComfyUI 工作流 / Task Shelf 后端契约）。
 
 独立轻量任务状态机（不复用旧 /api/canvas-image-tasks 的全局 Map）：
-- 提交时惰性复用旧接口的生成执行（main.build_online_image_result），避免循环导入；
+- 图片任务：提交时惰性复用旧接口的生成执行（main.build_online_image_result），避免循环导入；
+- ComfyUI 任务（POST /comfy）：提交工作流字段值，复用旧 run_workflow（字段→节点覆盖映射 +
+  generate 执行，同步函数跑线程池），供应商映射细节留在旧实现，前端只提交稳定 DTO；
 - 状态机：queued → running → succeeded | failed | cancelled；
   即梦云端排队时为 jimeng_pending，查询时惰性触发自动续查
   （main.jimeng_query_result + jimeng_store_outputs），轮询契约最终到达终态；
@@ -13,12 +15,14 @@
 """
 
 import asyncio
+import json
+import os
 import threading
 import time
 import uuid
 from typing import Any, Dict, Set
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from API.v2.problems import ErrorCode, V2Error
@@ -65,6 +69,21 @@ def _mark_running(task_id: str) -> None:
         if task and task.get("status") == "queued":
             task["status"] = "running"
             task["updated_at"] = _now_ms()
+
+
+def _trim_overfull_store() -> None:
+    """容量上限：超出保留最近 TASKS_RETAIN_MAX 条（按创建时间倒序裁剪最旧）。"""
+    if len(GENERATION_TASKS) <= TASKS_RETAIN_MAX:
+        return
+    overflow = sorted(
+        GENERATION_TASKS,
+        key=lambda k: int(GENERATION_TASKS[k].get("created_at") or 0),
+        reverse=True,
+    )[TASKS_RETAIN_MAX:]
+    for old_id in overflow:
+        GENERATION_TASKS.pop(old_id, None)
+        HANDLES.pop(old_id, None)
+        CONTINUING.discard(old_id)
 
 
 class GenerationSubmitRequest(BaseModel):
@@ -217,13 +236,7 @@ async def submit_generation_task(payload: GenerationSubmitRequest):
     }
     with TASKS_LOCK:
         GENERATION_TASKS[task_id] = task
-        # 容量上限：超出保留最近 TASKS_RETAIN_MAX 条（按创建时间倒序裁剪）
-        if len(GENERATION_TASKS) > TASKS_RETAIN_MAX:
-            overflow = sorted(GENERATION_TASKS, key=lambda k: int(GENERATION_TASKS[k].get("created_at") or 0), reverse=True)[TASKS_RETAIN_MAX:]
-            for old_id in overflow:
-                GENERATION_TASKS.pop(old_id, None)
-                HANDLES.pop(old_id, None)
-                CONTINUING.discard(old_id)
+        _trim_overfull_store()
     if AUTO_RUN:
         handle = asyncio.create_task(run_generation_task(task_id, payload))
         with TASKS_LOCK:
@@ -289,3 +302,131 @@ async def cancel_generation_task(task_id: str):
     if handle is not None and not handle.done():
         handle.cancel()
     return {"task": view}
+
+
+class ComfySubmitRequest(BaseModel):
+    """提交 ComfyUI 工作流任务。
+
+    field_values 按工作流 config 的字段 id 键控（如 f_prompt）；字段 → 节点输入覆盖的
+    映射由后端完成（复用旧 run_workflow），前端/通用组件不感知 ComfyUI 内部结构。
+    """
+
+    workflow: str
+    field_values: Dict[str, Any] = Field(default_factory=dict)
+
+
+def normalize_comfy_result(result: Dict[str, Any], workflow: str) -> Dict[str, Any]:
+    """把旧 generate() 的 ComfyUI 结果收敛为 v2 稳定引用视图（与图片任务 result 对齐）：
+    images + image_items（url/kind/name）；运行细节（backend/prompt_id/seed 等）不进视图。"""
+    images = [str(u) for u in (result.get("images") or []) if str(u or "").strip()]
+    items = [it for it in (result.get("items") or []) if isinstance(it, dict) and it.get("url")]
+    image_items = [
+        {"url": str(it["url"]), "kind": str(it.get("kind") or "image"), "name": str(it.get("name") or "")}
+        for it in items
+    ]
+    if not image_items:
+        # 兜底：旧结果没有 items 时按 images 构造稳定引用（F12 消费 url + 元数据）
+        image_items = [{"url": u, "kind": "image", "name": u.rsplit("/", 1)[-1]} for u in images]
+    return {
+        "images": images,
+        "image_items": image_items,
+        "workflow": workflow,
+        "prompt": str(result.get("prompt") or ""),
+        "timestamp": result.get("timestamp"),
+        "task_id": str(result.get("task_id") or ""),
+        "params": result.get("params") or {},
+    }
+
+
+async def run_comfy_task(task_id: str, payload: ComfySubmitRequest) -> None:
+    """执行 ComfyUI 工作流任务：复用旧 run_workflow（字段→节点覆盖映射 + generate 执行）。
+    run_workflow 为同步函数，跑在线程池（旧 /api/canvas-comfy-tasks 同款 to_thread 模式）。
+    Adapter 边界：本模块 DTO → 旧 WorkflowRunRequest，供应商细节留在旧实现。"""
+    from main import WorkflowConfig, WorkflowRunRequest, run_workflow, workflow_config_path
+
+    _mark_running(task_id)
+    workflow = str(payload.workflow or "").strip()
+    try:
+        cfg_path = workflow_config_path(workflow)
+        if not os.path.exists(cfg_path):
+            _update_task(
+                task_id,
+                status="failed",
+                error="工作流缺少字段配置（.config.json），请先在 ComfyUI 设置中配置字段",
+                message="工作流配置缺失",
+            )
+            return
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            cfg = json.load(f) or {}
+        # 字段默认值合并：未显式提交的字段按 config 默认值提交，保证表单显示值与执行值一致（所见即所得）
+        values = dict(payload.field_values or {})
+        for field in cfg.get("fields") or []:
+            if (
+                isinstance(field, dict)
+                and field.get("id")
+                and field["id"] not in values
+                and field.get("default") is not None
+            ):
+                values[field["id"]] = field["default"]
+        legacy = WorkflowRunRequest(
+            fields=values,
+            config=WorkflowConfig(**cfg),
+            client_id="",
+        )
+        result = await asyncio.to_thread(run_workflow, workflow, legacy)
+        if not isinstance(result, dict) or result.get("error"):
+            raise RuntimeError(str(result.get("error") or "ComfyUI 工作流执行失败"))
+        _update_task(
+            task_id,
+            status="succeeded",
+            result=normalize_comfy_result(result, workflow),
+            error="",
+            message="生成完成",
+        )
+    except HTTPException as exc:
+        # 工作流名非法/不存在（workflow_config_path / run_workflow 抛 4xx）
+        _update_task(task_id, status="failed", error=str(exc.detail), status_code=exc.status_code, message="执行失败")
+    except Exception as exc:
+        detail = getattr(exc, "detail", None) or str(exc)
+        status_code = getattr(exc, "status_code", 500)
+        _update_task(task_id, status="failed", error=str(detail), status_code=status_code, message="执行失败")
+    finally:
+        with TASKS_LOCK:
+            HANDLES.pop(task_id, None)
+
+
+@router.post("/comfy", status_code=202)
+async def submit_comfy_task(payload: ComfySubmitRequest):
+    """提交 ComfyUI 工作流任务：立即返回 queued 任务，后台执行（旧接口异步包装）。"""
+    workflow = str(payload.workflow or "").strip()
+    if not workflow:
+        raise V2Error(
+            ErrorCode.VALIDATION_FAILED,
+            422,
+            "缺少工作流",
+            detail="请选择要执行的工作流",
+            field_errors={"workflow": "请选择工作流"},
+        )
+    task_id = f"comfy_{uuid.uuid4().hex}"
+    now = _now_ms()
+    task = {
+        "id": task_id,
+        "type": "comfy",
+        "status": "queued",
+        "created_at": now,
+        "updated_at": now,
+        "result": None,
+        "error": "",
+        "message": "任务已提交",
+        "workflow": workflow,
+        "field_values": dict(payload.field_values or {}),
+        "status_code": None,
+    }
+    with TASKS_LOCK:
+        GENERATION_TASKS[task_id] = task
+        _trim_overfull_store()
+    if AUTO_RUN:
+        handle = asyncio.create_task(run_comfy_task(task_id, payload))
+        with TASKS_LOCK:
+            HANDLES[task_id] = handle
+    return {"task": dict(task)}

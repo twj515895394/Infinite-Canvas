@@ -79,9 +79,10 @@ export function registerMvpNodes(): void {
         { id: 'in', label: '输入', kind: 'any', direction: 'input' },
         { id: 'out', label: '输出', kind: 'any', direction: 'output' },
       ],
+      // 实际参数表单由 WorkflowInspector 驱动（工作流选择 + 动态字段）；此处仅作兜底展示
       configSchema: [
         { key: 'workflow', label: '工作流', type: 'text', placeholder: 'workflow 名称' },
-        { key: 'params', label: '参数 JSON', type: 'textarea' },
+        { key: 'field_values', label: '字段值 JSON', type: 'textarea' },
       ],
       validate: (config) => (String(config.workflow ?? '').trim() ? null : '请选择工作流'),
     }),
@@ -122,6 +123,25 @@ export interface StudioNodeData {
   resultUrls?: string[]
 }
 
+/** 任务状态展示（与 TaskShelf TASK_STATUS_LABELS 语义一致；本地维护避免 canvas→generation 依赖）。 */
+const STATUS_LABELS: Record<string, string> = {
+  queued: '排队中',
+  running: '生成中',
+  jimeng_pending: '即梦排队中',
+  succeeded: '成功',
+  failed: '失败',
+  cancelled: '已取消',
+}
+
+const STATUS_CHIP: Record<string, string> = {
+  queued: 'bg-text-faint/15 text-text-muted',
+  running: 'bg-warning/15 text-warning',
+  jimeng_pending: 'bg-warning/15 text-warning',
+  succeeded: 'bg-success/15 text-success',
+  failed: 'bg-danger/15 text-danger',
+  cancelled: 'bg-text-faint/15 text-text-faint',
+}
+
 /** 统一节点 Host：标题 + 状态 + 输入/输出端口 */
 export const StudioNodeHost = memo(function StudioNodeHost({ data, selected }: NodeProps) {
   const { nodeType, config = {}, status, resultUrls = [] } = (data ?? {}) as unknown as StudioNodeData
@@ -150,15 +170,8 @@ export const StudioNodeHost = memo(function StudioNodeHost({ data, selected }: N
         <Icon size={14} className={cn('shrink-0', status === 'failed' ? 'text-danger' : 'text-accent')} aria-hidden />
         <span className="truncate text-xs font-medium text-text">{def.label}</span>
         {status && (
-          <span
-            className={cn(
-              'ml-auto rounded px-1.5 py-0.5 text-[10px]',
-              status === 'running' && 'bg-warning/15 text-warning',
-              status === 'succeeded' && 'bg-success/15 text-success',
-              status === 'failed' && 'bg-danger/15 text-danger',
-            )}
-          >
-            {status}
+          <span className={cn('ml-auto rounded px-1.5 py-0.5 text-[10px]', STATUS_CHIP[status])}>
+            {STATUS_LABELS[status] ?? status}
           </span>
         )}
       </div>

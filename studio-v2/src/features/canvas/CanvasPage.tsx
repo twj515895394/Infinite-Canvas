@@ -26,22 +26,23 @@ import { nodeRegistry, type InspectorField } from '@/features/canvas/registry'
 import { registerMvpNodes, nodeTypes, NODE_TYPES } from '@/features/canvas/nodes'
 import type { CanvasNode, CanvasEdge } from '@/features/canvas/ports'
 import { ImageGenInspector } from '@/features/generation/ImageGenInspector'
+import { WorkflowInspector } from '@/features/generation/WorkflowInspector'
 import type { StableImageResult } from '@/features/generation/api'
 import { loadCanvas, saveCanvasSnapshot, isRevisionConflict } from '@/features/canvas/persistence'
 import { cn } from '@/core/utils/cn'
 
 registerMvpNodes()
 
-/** 节点结果缩略图来源：图片生成节点直接读自身 config.result（稳定引用）；输出节点收集上游结果。 */
+/** 节点结果缩略图来源：生成节点（图片/工作流）直接读自身 config.result（稳定引用）；输出节点收集上游结果。 */
 function resultUrlsFor(node: CanvasNode, nodes: CanvasNode[], edges: CanvasEdge[]): string[] {
-  if (node.type === 'image-generation') {
+  if (node.type === 'image-generation' || node.type === 'workflow') {
     return (node.config?.result as StableImageResult | undefined)?.urls ?? []
   }
   if (node.type === 'output') {
     const sources = edges
       .filter((e) => e.target === node.id)
       .map((e) => nodes.find((n) => n.id === e.source))
-      .filter((n): n is CanvasNode => n?.type === 'image-generation')
+      .filter((n): n is CanvasNode => n?.type === 'image-generation' || n?.type === 'workflow')
     return sources.flatMap((n) => (n.config?.result as StableImageResult | undefined)?.urls ?? [])
   }
   return []
@@ -70,6 +71,14 @@ function InspectorPanel() {
       <div className="flex flex-col gap-3 p-3">
         <div className="text-xs font-medium text-text">图片生成 参数</div>
         <ImageGenInspector nodeId={node.id} config={node.config} updateConfig={updateConfig} />
+      </div>
+    )
+  }
+  if (def.type === 'workflow') {
+    return (
+      <div className="flex flex-col gap-3 p-3">
+        <div className="text-xs font-medium text-text">ComfyUI 工作流 参数</div>
+        <WorkflowInspector nodeId={node.id} config={node.config} updateConfig={updateConfig} />
       </div>
     )
   }

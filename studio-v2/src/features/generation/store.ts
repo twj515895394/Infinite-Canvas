@@ -11,6 +11,7 @@ import {
   getImageTask,
   isTaskActive,
   toStableResult,
+  type ComfySubmitPayload,
   type GenerationTaskStatus,
   type ImageSubmitPayload,
   type ImageTaskResult,
@@ -18,17 +19,21 @@ import {
 
 export interface TaskEntry {
   taskId: string
+  /** 任务类型：图片生成 / ComfyUI 工作流（重试时按类型分派端点）。 */
+  kind?: 'image' | 'comfy'
   /** 发起任务的节点（画布节点）id；来自后端恢复的任务无此字段。 */
   nodeId?: string
   label: string
   status: GenerationTaskStatus
   providerId?: string
   model?: string
+  /** ComfyUI 工作流名（展示用）。 */
+  workflow?: string
   error?: string
   message?: string
   result?: ImageTaskResult | null
   /** 提交载荷快照（重试用；不可变，保证重试与原始提交一致）。 */
-  payload?: ImageSubmitPayload | null
+  payload?: ImageSubmitPayload | ComfySubmitPayload | null
   createdAt: number
   updatedAt: number
 }
@@ -40,7 +45,16 @@ interface GenerationStore {
   remove(taskId: string): void
   clearFinished(): void
   /** 从后端近期任务恢复（去重：已存在的 taskId 保留本地 nodeId 关联）。 */
-  mergeBackend(tasks: { id: string; status: GenerationTaskStatus; created_at: number; updated_at: number }[]): void
+  mergeBackend(
+    tasks: {
+      id: string
+      type?: string
+      workflow?: string
+      status: GenerationTaskStatus
+      created_at: number
+      updated_at: number
+    }[],
+  ): void
   reset(): void
 }
 
@@ -76,9 +90,12 @@ export const useGenerationStore = create<GenerationStore>()((set) => ({
       const merged: TaskEntry[] = []
       for (const raw of tasks) {
         if (known.has(raw.id)) continue
+        const isComfy = raw.type === 'comfy'
         merged.push({
           taskId: raw.id,
-          label: '生成任务',
+          kind: isComfy ? 'comfy' : 'image',
+          label: isComfy ? 'ComfyUI 工作流' : '生成任务',
+          workflow: raw.workflow,
           status: raw.status,
           createdAt: raw.created_at,
           updatedAt: raw.updated_at,

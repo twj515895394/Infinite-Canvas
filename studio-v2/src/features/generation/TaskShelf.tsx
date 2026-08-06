@@ -24,11 +24,12 @@ import { useEditorStore } from '@/features/canvas/store'
 import {
   cancelImageTask,
   isTaskActive,
+  submitComfyTask,
   submitImageTask,
   TASK_STATUS_LABELS,
   useGenerationTaskList,
 } from '@/features/generation/api'
-import type { GenerationTaskStatus } from '@/features/generation/api'
+import type { ComfySubmitPayload, GenerationTaskStatus, ImageSubmitPayload } from '@/features/generation/api'
 import { refreshActiveTasks, useGenerationStore } from '@/features/generation/store'
 import type { TaskEntry } from '@/features/generation/store'
 
@@ -78,7 +79,7 @@ function TaskRow({
 }) {
   const active = isTaskActive(entry.status)
   const spinning = entry.status === 'running' || entry.status === 'jimeng_pending'
-  const subtitle = [entry.providerId, entry.model].filter(Boolean).join(' · ')
+  const subtitle = [entry.workflow, entry.providerId, entry.model].filter(Boolean).join(' · ')
   return (
     <div className="flex items-center gap-2.5 px-4 py-2">
       <StatusIcon status={entry.status} spinning={spinning} />
@@ -164,14 +165,20 @@ export function TaskShelf() {
   const retry = async (entry: TaskEntry) => {
     if (!entry.payload) return
     try {
-      const { task } = await submitImageTask(entry.payload)
+      // 按任务类型分派提交端点：ComfyUI 工作流 / 图片生成共用同一任务中心
+      const { task } =
+        entry.kind === 'comfy'
+          ? await submitComfyTask(entry.payload as ComfySubmitPayload)
+          : await submitImageTask(entry.payload as ImageSubmitPayload)
       useGenerationStore.getState().upsert({
         taskId: task.id,
+        kind: entry.kind,
         nodeId: entry.nodeId,
         label: entry.label,
         status: task.status,
         providerId: entry.providerId,
         model: entry.model,
+        workflow: entry.workflow,
         payload: entry.payload,
         createdAt: task.created_at,
         updatedAt: task.updated_at,
