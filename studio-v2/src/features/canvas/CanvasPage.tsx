@@ -26,23 +26,23 @@ import { nodeRegistry, type InspectorField } from '@/features/canvas/registry'
 import { registerMvpNodes, nodeTypes, NODE_TYPES } from '@/features/canvas/nodes'
 import type { CanvasNode, CanvasEdge } from '@/features/canvas/ports'
 import { ImageGenInspector } from '@/features/generation/ImageGenInspector'
-import type { ImageTaskResult } from '@/features/generation/api'
+import type { StableImageResult } from '@/features/generation/api'
 import { loadCanvas, saveCanvasSnapshot, isRevisionConflict } from '@/features/canvas/persistence'
 import { cn } from '@/core/utils/cn'
 
 registerMvpNodes()
 
-/** 节点结果缩略图来源：图片生成节点直接读自身 config.result；输出节点收集上游结果（输出节点引用结果）。 */
+/** 节点结果缩略图来源：图片生成节点直接读自身 config.result（稳定引用）；输出节点收集上游结果。 */
 function resultUrlsFor(node: CanvasNode, nodes: CanvasNode[], edges: CanvasEdge[]): string[] {
   if (node.type === 'image-generation') {
-    return (node.config?.result as ImageTaskResult | undefined)?.images ?? []
+    return (node.config?.result as StableImageResult | undefined)?.urls ?? []
   }
   if (node.type === 'output') {
     const sources = edges
       .filter((e) => e.target === node.id)
       .map((e) => nodes.find((n) => n.id === e.source))
       .filter((n): n is CanvasNode => n?.type === 'image-generation')
-    return sources.flatMap((n) => (n.config?.result as ImageTaskResult | undefined)?.images ?? [])
+    return sources.flatMap((n) => (n.config?.result as StableImageResult | undefined)?.urls ?? [])
   }
   return []
 }

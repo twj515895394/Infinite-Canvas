@@ -211,7 +211,7 @@ export function TaskShelf() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ type: 'spring', bounce: 0, duration: 0.32 }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.18 }}
             className="overflow-hidden"
           >
             {panel}

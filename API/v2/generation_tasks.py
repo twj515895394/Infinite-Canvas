@@ -16,7 +16,7 @@ import asyncio
 import threading
 import time
 import uuid
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Set
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
@@ -36,6 +36,8 @@ HANDLES: Dict[str, "asyncio.Task"] = {}
 TERMINAL_STATUSES = {"succeeded", "failed", "cancelled"}
 LIST_LIMIT_MAX = 100
 LIST_LIMIT_DEFAULT = 20
+# 进程内任务保留上限（MVP 轮询简化：超出丢弃最旧任务，防止无限增长）
+TASKS_RETAIN_MAX = 100
 
 # 提交后自动后台执行。测试关闭（AUTO_RUN=False）后手动驱动 run_generation_task：
 # TestClient 的 portal 循环不保证调度后台任务，自动执行会引入竞态。
@@ -44,11 +46,6 @@ AUTO_RUN = True
 
 def _now_ms() -> int:
     return int(time.time() * 1000)
-
-
-def _task_view(task: Dict[str, Any]) -> Dict[str, Any]:
-    """对外视图：任务 dict 不含内部键，直接拷贝即可。"""
-    return dict(task)
 
 
 def _update_task(task_id: str, **updates) -> bool:
@@ -102,13 +99,13 @@ async def run_generation_task(task_id: str, payload: GenerationSubmitRequest) ->
     except JimengPendingError as exc:
         # 即梦云端还在排队：置为 jimeng_pending，由 GET 惰性触发自动续查（任务未丢失）
         info = jimeng_pending_payload(exc)
+        # 供应商私有字段（queue_info）不透传到 V2 视图，仅保留续查所需的 submit_id/kind 与展示 message
         _update_task(
             task_id,
             status="jimeng_pending",
             jimeng_pending=True,
             submit_id=exc.submit_id,
             kind=exc.kind,
-            queue_info=exc.queue_info,
             message=info.get("message", "即梦云端排队中"),
             error="",
         )
@@ -155,7 +152,6 @@ async def continue_jimeng_task(task_id: str) -> None:
                     task_id,
                     status="jimeng_pending",
                     jimeng_pending=True,
-                    queue_info=exc.queue_info,
                     message=info.get("message", "即梦云端排队中"),
                     error="",
                 )
@@ -217,11 +213,17 @@ async def submit_generation_task(payload: GenerationSubmitRequest):
         "jimeng_pending": False,
         "submit_id": None,
         "kind": None,
-        "queue_info": None,
         "status_code": None,
     }
     with TASKS_LOCK:
         GENERATION_TASKS[task_id] = task
+        # 容量上限：超出保留最近 TASKS_RETAIN_MAX 条（按创建时间倒序裁剪）
+        if len(GENERATION_TASKS) > TASKS_RETAIN_MAX:
+            overflow = sorted(GENERATION_TASKS, key=lambda k: int(GENERATION_TASKS[k].get("created_at") or 0), reverse=True)[TASKS_RETAIN_MAX:]
+            for old_id in overflow:
+                GENERATION_TASKS.pop(old_id, None)
+                HANDLES.pop(old_id, None)
+                CONTINUING.discard(old_id)
     if AUTO_RUN:
         handle = asyncio.create_task(run_generation_task(task_id, payload))
         with TASKS_LOCK:

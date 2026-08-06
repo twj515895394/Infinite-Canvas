@@ -47,7 +47,6 @@ export interface GenerationTask {
   jimeng_pending?: boolean
   submit_id?: string | null
   kind?: string | null
-  queue_info?: Record<string, unknown> | null
   status_code?: number | null
 }
 
@@ -80,6 +79,20 @@ export interface ImageSubmitPayload {
   size?: string
   quality?: string
   n?: number
+}
+
+/** 写回节点 config 的稳定引用（design doc §3.5：节点只存结果引用，不复制任务详情/供应商字段）。 */
+export interface StableImageResult {
+  urls: string[]
+  items: ImageItem[]
+}
+
+/** 从后端任务结果提取稳定引用：仅 URL + item 元数据（供 F12 输出入资产库）。 */
+export function toStableResult(result: ImageTaskResult | null | undefined): StableImageResult {
+  return {
+    urls: result?.images ?? [],
+    items: result?.image_items ?? [],
+  }
 }
 
 // ---------- 端点 ----------

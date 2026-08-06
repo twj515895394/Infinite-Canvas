@@ -258,6 +258,24 @@ def test_jimeng_pending_auto_continuation_fails(client):
     assert "余额不足" in task["error"]
 
 
+# ---------- 容量上限 ----------
+
+def test_task_store_capped_at_retain_max(client, monkeypatch):
+    """提交超过 TASKS_RETAIN_MAX 时裁剪最旧任务（内存不无限增长）。"""
+    monkeypatch.setattr(gen, "TASKS_RETAIN_MAX", 5)
+    async def fake_build(_payload):
+        return FAKE_RESULT
+
+    with patch.object(main, "build_online_image_result", new=fake_build):
+        ids = []
+        for i in range(8):
+            ids.append(submit(client, prompt=f"cap-{i}").json()["task"]["id"])
+    listing = client.get("/api/v2/generation-tasks").json()["tasks"]
+    assert len(listing) == 5
+    assert ids[:3] not in [t["id"] for t in listing]  # 最旧的 3 条被裁剪
+    assert [t["id"] for t in listing] == ids[-1::-1][:5]  # 保留最近 5 条，倒序
+
+
 # ---------- 404 ----------
 
 def test_get_missing_task_404(client):

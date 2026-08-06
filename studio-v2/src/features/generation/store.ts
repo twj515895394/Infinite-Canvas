@@ -1,14 +1,16 @@
 /**
  * Task Shelf Store（F6）：全局生成任务清单 + 轮询驱动。
  * 任务由节点 Inspector 提交时 register；refreshActiveTasks 轮询后端 /api/v2/generation-tasks/{id}，
- * 将状态投影到节点运行态（useEditorStore.runtime）并在成功时写回节点 config.result（稳定引用）。
- * 任务状态是运行时投影，不进入画布持久化（design doc §14.3）。
+ * 将状态投影到节点运行态（useEditorStore.runtime）；成功时仅把稳定引用（urls+items）写回
+ * 节点 config.result（design doc §3.5：节点只存结果引用；运行态/供应商细节不入画布持久化）。
  */
 import { create } from 'zustand'
+import { ApiError } from '@/core/api/client'
 import { useEditorStore } from '@/features/canvas/store'
 import {
   getImageTask,
   isTaskActive,
+  toStableResult,
   type GenerationTaskStatus,
   type ImageSubmitPayload,
   type ImageTaskResult,
@@ -114,11 +116,15 @@ export async function refreshActiveTasks(): Promise<void> {
       // 节点运行态投影：即梦排队统一显示为运行中
       editor.setRuntime(entry.nodeId, task.status === 'jimeng_pending' ? 'running' : task.status)
       if (task.status === 'succeeded' && task.result) {
-        editor.setNodeResult(entry.nodeId, task.result)
+        // 仅写回稳定引用（urls+items），任务详情/供应商字段不入画布持久化
+        editor.setNodeResult(entry.nodeId, toStableResult(task.result))
       }
-    } catch {
-      // 后端重启/任务过期（404）：标记失败，避免无限轮询
-      store.patch(entry.taskId, { status: 'failed', error: '任务状态查询失败（后端可能已重启）' })
+    } catch (err) {
+      // 仅 404（任务已过期/后端重启）视为终态失败；瞬时网络错误保留 active 下轮重试
+      if (err instanceof ApiError && err.problem.code === 'RESOURCE_NOT_FOUND') {
+        store.patch(entry.taskId, { status: 'failed', error: '任务已过期或后端已重启' })
+        if (entry.nodeId) editor.setRuntime(entry.nodeId, 'failed')
+      }
     }
   }
 }
