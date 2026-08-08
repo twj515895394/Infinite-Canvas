@@ -570,10 +570,12 @@ async def dispatch_run(run_id: str) -> None:
             "studio_task_id": task["id"],
             "studio_run_id": run_id,
             "user_message": task["message"],
-            "model": agent.get("default_model"),
+            "model": agent.get("default_model") or runtime.get("default_model"),
             "instructions": rev.get("instructions_text", ""),
             "skills": skills,
             "asset_refs": asset_refs,
+            "executable_path": runtime.get("executable_path"),
+            "adapter_type": runtime.get("adapter_type"),
             "output_policy": load_json(task.get("output_policy_json"), {}),
             "permission_policy": load_json(task.get("permission_policy_json"), {}),
         }

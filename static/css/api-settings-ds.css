@@ -1,0 +1,325 @@
+/**
+ * API Settings Design System Module CSS
+ * 遵循 <= 900 行规范 (SRP 模块化)
+ */
+
+.page {
+    padding: 36px 28px 72px !important;
+}
+.wrap {
+    max-width: 1080px !important;
+}
+
+.page-head .title {
+    font-size: 22px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.025em !important;
+    line-height: 1.1 !important;
+}
+.page-head .sub {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    line-height: 1.6 !important;
+    margin-top: 6px !important;
+}
+
+.sidebar {
+    border-radius: 16px !important;
+    border-width: 1px !important;
+    padding: 12px !important;
+    gap: 8px !important;
+    position: sticky;
+    top: 28px;
+}
+.side-section-title {
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.09em !important;
+    padding: 2px 6px !important;
+    opacity: 0.65;
+}
+
+.provider-card {
+    border-radius: 10px !important;
+    padding: 8px 10px !important;
+    gap: 9px !important;
+    min-height: 44px !important;
+    transition:
+        background var(--ds-fast) var(--ds-material),
+        border-color var(--ds-fast) var(--ds-material),
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring) !important;
+}
+.provider-card:hover {
+    transform: translateX(2px) !important;
+}
+.provider-card.active {
+    border-radius: 10px !important;
+}
+.provider-mark {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 7px !important;
+}
+.provider-name {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+}
+.provider-meta {
+    font-size: 10px !important;
+    font-weight: 400 !important;
+}
+
+.block {
+    border-radius: 14px !important;
+    padding: 20px 22px !important;
+    gap: 12px !important;
+}
+.block-head {
+    padding-bottom: 12px !important;
+    margin-bottom: 4px !important;
+}
+.block-title {
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.07em !important;
+}
+.block-desc {
+    font-size: 11.5px !important;
+    font-weight: 400 !important;
+    line-height: 1.6 !important;
+    margin-top: 3px !important;
+}
+
+.content-head {
+    border-radius: 14px !important;
+    padding: 18px 22px !important;
+}
+.content-head .editor-title {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+}
+.content-head .editor-sub {
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0 !important;
+    margin-top: 3px !important;
+}
+
+.label {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.01em !important;
+}
+.hint {
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    line-height: 1.55 !important;
+}
+
+.field-frame {
+    border-radius: 10px !important;
+    padding: 3px !important;
+    transition: border-color var(--ds-fast) var(--ds-material),
+                box-shadow var(--ds-fast) var(--ds-spring) !important;
+}
+.field-frame:focus-within {
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06) !important;
+}
+.theme-dark .field-frame:focus-within,
+.studio-theme-dark .field-frame:focus-within,
+html.studio-theme-dark .field-frame:focus-within {
+    box-shadow: 0 0 0 3px rgba(216, 222, 233, 0.08) !important;
+}
+.field-frame input {
+    height: 32px !important;
+    font-size: 12.5px !important;
+    font-weight: 400 !important;
+    padding: 0 10px !important;
+}
+
+.action-btn {
+    height: 34px !important;
+    padding: 0 13px !important;
+    border-radius: 9px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    gap: 5px !important;
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring),
+        border-color var(--ds-fast) var(--ds-material),
+        background var(--ds-fast) var(--ds-material) !important;
+}
+.action-btn:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1) !important;
+}
+.action-btn:active {
+    transform: scale(0.97) !important;
+    transition-duration: 60ms !important;
+}
+.action-btn.save-btn {
+    border-radius: 9px !important;
+    font-weight: 700 !important;
+}
+.action-btn.save-btn:hover {
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15) !important;
+}
+
+.key-btn {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    transition:
+        color var(--ds-fast) var(--ds-material),
+        border-color var(--ds-fast) var(--ds-material),
+        background var(--ds-fast) var(--ds-material),
+        transform var(--ds-fast) var(--ds-spring) !important;
+}
+.key-btn:hover {
+    transform: translateY(-1px) !important;
+}
+
+.add-btn {
+    border-radius: 10px !important;
+    height: 38px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    transition:
+        background var(--ds-fast) var(--ds-material),
+        border-color var(--ds-fast) var(--ds-material),
+        color var(--ds-fast) var(--ds-material) !important;
+}
+.ghost-btn {
+    height: 30px !important;
+    padding: 0 11px !important;
+    border-radius: 8px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    transition:
+        color var(--ds-fast) var(--ds-material),
+        border-color var(--ds-fast) var(--ds-material) !important;
+}
+.api-link-btn {
+    border-radius: 10px !important;
+    height: 38px !important;
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+}
+
+.model-row {
+    border-radius: 10px !important;
+    padding: 3px !important;
+}
+.model-row input {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+}
+.model-display-name {
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+}
+
+.recommend-card {
+    border-radius: 14px !important;
+    padding: 14px !important;
+    gap: 10px !important;
+    transition:
+        box-shadow var(--ds-base) var(--ds-spring),
+        border-color var(--ds-base) var(--ds-material),
+        transform var(--ds-base) var(--ds-spring) !important;
+}
+.recommend-card:hover {
+    transform: translateY(-2px) !important;
+}
+.recommend-name {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
+}
+.recommend-badge {
+    border-radius: 999px !important;
+    height: 20px !important;
+    font-size: 9.5px !important;
+    font-weight: 600 !important;
+}
+.recommend-tag {
+    height: 22px !important;
+    border-radius: 7px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+}
+.recommend-actions a,
+.recommend-actions button {
+    height: 32px !important;
+    border-radius: 99px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring) !important;
+}
+.recommend-actions a:hover,
+.recommend-actions button:hover {
+    transform: translateY(-1px) !important;
+}
+
+.picker-modal {
+    border-radius: 16px !important;
+}
+.picker-head {
+    padding: 14px 18px !important;
+}
+.picker-title {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
+}
+.picker-close {
+    border-radius: 8px !important;
+    transition: background var(--ds-fast) var(--ds-material) !important;
+}
+.picker-search {
+    height: 32px !important;
+    border-radius: 8px !important;
+    font-size: 12px !important;
+}
+.picker-cat-tab {
+    height: 26px !important;
+    padding: 0 9px !important;
+    border-radius: 6px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+}
+.picker-model-label {
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+}
+.picker-model-id {
+    font-size: 10px !important;
+}
+
+.key-panel {
+    border-radius: 12px !important;
+    padding: 10px !important;
+}
+.rh-key-item {
+    border-radius: 12px !important;
+    padding: 12px !important;
+}
+.rh-key-title {
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
+}
+.rh-key-desc {
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+}
+.rh-config-card {
+    border-radius: 12px !important;
+    padding: 10px !important;
+}

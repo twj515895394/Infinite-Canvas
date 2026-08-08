@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Center - AI Studio</title>
+    <script>
+        (function(){
+            try {
+                var theme = localStorage.getItem('studio_theme') || localStorage.getItem('canvas_theme') || 'light';
+                if(theme === 'dark') {
+                    document.documentElement.classList.add('studio-theme-dark', 'theme-dark');
+                }
+            } catch(e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="/static/css/design-system.css?v=2026.08.04.1786081921">
+    <script src="/static/vendor/js/lucide.js?v=2026.08.04.1785909579"></script>
+    <script src="/static/js/theme.js?v=2026.08.04.1785909579"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 24px;
+            background: var(--stage-bg, #fcfcfc);
+            color: var(--text, #0f172a);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            box-sizing: border-box;
+            cursor: default !important;
+        }
+        html.theme-dark,
+        html.theme-dark body,
+        html.studio-theme-dark,
+        html.studio-theme-dark body,
+        body.theme-dark,
+        body.studio-theme-dark {
+            background: #0f141d !important;
+            color: #f8fafc !important;
+        }
+        #agent-center-mount {
+            max-width: 1240px;
+            margin: 0 auto;
+            cursor: default !important;
+        }
+        button, select, a, [role="button"], .nav-tab {
+            cursor: pointer !important;
+        }
+        input, textarea, code {
+            cursor: text !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="agent-center-mount"></div>
+
+    <script type="module">
+        import defaultShell, { agentCenterShell, globalAgentCenter, AgentCenter } from '/static/js/modules/agent-center.js?v=2026.08.04';
+        
+        function mount() {
+            const mountEl = document.getElementById('agent-center-mount');
+            const targetShell = agentCenterShell || defaultShell || window.agentCenterShell;
+            if (mountEl) {
+                if (targetShell && typeof targetShell.init === 'function') {
+                    targetShell.init(mountEl);
+                } else if (globalAgentCenter && typeof globalAgentCenter.init === 'function') {
+                    globalAgentCenter.init(mountEl);
+                } else if (typeof AgentCenter === 'function') {
+                    const inst = new AgentCenter({ container: mountEl });
+                    inst.init(mountEl);
+                }
+            }
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', mount);
+        } else {
+            mount();
+        }
+    </script>
+</body>
+</html>

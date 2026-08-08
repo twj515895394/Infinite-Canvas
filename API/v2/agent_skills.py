@@ -327,6 +327,7 @@ def _schema_json_or_empty(path: str) -> str:
 
 
 @router.get("/skills")
+@router.get("/agent-skills")
 def list_skills_v2() -> Dict:
     """Skill 列表（Summary：active_version/source_types/binding_count）。"""
     conn = db.get_connection()
@@ -444,6 +445,7 @@ async def import_skill_v2(
 
 
 @router.get("/skills/{skill_id}")
+@router.get("/agent-skills/{skill_id}")
 def get_skill_v2(skill_id: str) -> Dict:
     """Skill Detail：summary + 版本列表 + 当前激活版本。"""
     skill = require_skill(skill_id)

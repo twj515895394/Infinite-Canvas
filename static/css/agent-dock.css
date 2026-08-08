@@ -1,0 +1,221 @@
+/**
+ * Agent Dock & Agent Task Node Module CSS
+ * 包含全局 Agent Dock 浮层、事件流列表、结果框与 Smart Canvas Agent Task Node 样式。
+ * 遵循 <= 900 行规范 (SRP 模块化)
+ */
+
+.agent-dock-overlay {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    width: 440px;
+    max-width: calc(100vw - 48px);
+    max-height: calc(100vh - 48px);
+    z-index: 9999;
+    display: none;
+    flex-direction: column;
+}
+
+.agent-dock-overlay.agent-dock-visible {
+    display: flex;
+}
+
+.agent-dock-panel {
+    background: var(--panel, #ffffff);
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 16px;
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.18), 0 4px 16px rgba(15, 23, 42, 0.1);
+    backdrop-filter: blur(24px) saturate(1.8);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.agent-dock-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line, #e2e8f0);
+    background: rgba(15, 23, 42, 0.02);
+}
+
+.agent-dock-header .header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.agent-dock-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary, #0f172a);
+}
+
+.agent-dock-close-btn {
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-muted, #64748b);
+    line-height: 1;
+    padding: 0 4px;
+}
+
+.agent-dock-close-btn:hover {
+    color: var(--text-primary, #0f172a);
+}
+
+.agent-dock-body {
+    padding: 16px;
+    overflow-y: auto;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.agent-dock-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.agent-dock-controls .form-group {
+    flex: 1;
+}
+
+.agent-dock-body label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary, #475569);
+    margin-bottom: 4px;
+    display: block;
+}
+
+.agent-dock-select-agent,
+.agent-dock-select-skill {
+    width: 100%;
+    height: 34px;
+    border-radius: 8px;
+    border: 1px solid var(--line, #cbd5e1);
+    padding: 0 8px;
+    font-size: 12px;
+    background: var(--bg-input, #ffffff);
+}
+
+.agent-dock-instruction {
+    width: 100%;
+    min-height: 72px;
+    border-radius: 8px;
+    border: 1px solid var(--line, #cbd5e1);
+    padding: 8px 10px;
+    font-size: 12px;
+    resize: vertical;
+    background: var(--bg-input, #ffffff);
+}
+
+.agent-dock-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.agent-dock-status-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.agent-dock-status-badge.status-pending,
+.agent-dock-status-badge.status-queued {
+    background: rgba(234, 179, 8, 0.15);
+    color: #b45309;
+}
+
+.agent-dock-status-badge.status-running {
+    background: rgba(59, 130, 246, 0.15);
+    color: #1d4ed8;
+}
+
+.agent-dock-status-badge.status-succeeded {
+    background: rgba(34, 197, 94, 0.15);
+    color: #15803d;
+}
+
+.agent-dock-status-badge.status-failed,
+.agent-dock-status-badge.status-cancelled {
+    background: rgba(239, 68, 68, 0.15);
+    color: #b91c1c;
+}
+
+.agent-dock-event-stream {
+    background: var(--bg-code, #0f172a);
+    color: var(--text-code, #f8fafc);
+    border-radius: 8px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 11px;
+    max-height: 180px;
+    overflow-y: auto;
+}
+
+.agent-dock-event-item {
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.agent-dock-event-item .event-time {
+    color: #64748b;
+    margin-right: 6px;
+}
+
+.agent-dock-event-item .event-type {
+    color: #38bdf8;
+    margin-right: 6px;
+}
+
+.agent-dock-result-box {
+    background: var(--bg-subtle, #f8fafc);
+    border: 1px solid var(--line, #e2e8f0);
+    border-radius: 8px;
+    padding: 10px;
+    max-height: 160px;
+    overflow-y: auto;
+    font-size: 11.5px;
+}
+
+.agent-dock-context-tags {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.agent-dock-context-tags .context-tag {
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+/* Agent Task Canvas Node styling */
+.agent-task-node {
+    min-width: 240px !important;
+    border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+.agent-task-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+}

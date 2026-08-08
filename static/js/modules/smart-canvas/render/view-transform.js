@@ -88,7 +88,8 @@ export class ViewTransformEngine {
     requestRender() {
         this.isDirty = true;
         if (!this.rafId) {
-            this.rafId = requestAnimationFrame(() => this.flush());
+            const reqFn = typeof requestAnimationFrame !== 'undefined' ? requestAnimationFrame : (cb => setTimeout(cb, 16));
+            this.rafId = reqFn(() => this.flush());
         }
     }
 

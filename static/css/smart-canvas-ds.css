@@ -1,0 +1,403 @@
+/**
+ * Smart Canvas Design System Module CSS
+ * 遵循 <= 900 行规范 (SRP 模块化)
+ */
+
+.smart-back {
+    height: 36px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    gap: 6px !important;
+    backdrop-filter: blur(20px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08),
+                0 1px 4px rgba(15, 23, 42, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring) !important;
+}
+.smart-back:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12),
+                0 2px 8px rgba(15, 23, 42, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+.smart-back:active {
+    transform: scale(0.97) !important;
+    transition-duration: 60ms !important;
+}
+.smart-back i,
+.smart-back svg {
+    width: 14px !important;
+    height: 14px !important;
+    opacity: 0.75;
+}
+
+.smart-title {
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0 !important;
+    opacity: 0.65;
+}
+
+.smart-log-toggle,
+.smart-shortcut-toggle,
+.smart-workflow-toggle {
+    width: auto !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    padding: 0 13px !important;
+    border-radius: 999px !important;
+    font-size: 11.5px !important;
+    font-weight: 600 !important;
+    gap: 6px !important;
+    backdrop-filter: blur(20px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring),
+        background var(--ds-base) var(--ds-material),
+        border-color var(--ds-base) var(--ds-material),
+        color var(--ds-base) var(--ds-material) !important;
+}
+.smart-log-toggle:hover,
+.smart-shortcut-toggle:hover,
+.smart-workflow-toggle:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+.smart-log-toggle:active,
+.smart-shortcut-toggle:active,
+.smart-workflow-toggle:active {
+    transform: scale(0.97) !important;
+    transition-duration: 60ms !important;
+}
+.smart-log-toggle i, .smart-log-toggle svg,
+.smart-shortcut-toggle i, .smart-shortcut-toggle svg,
+.smart-workflow-toggle i, .smart-workflow-toggle svg {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+.composer-card {
+    border-radius: 20px !important;
+    padding: 10px !important;
+    gap: 7px !important;
+    backdrop-filter: blur(32px) saturate(1.8) !important;
+    -webkit-backdrop-filter: blur(32px) saturate(1.8) !important;
+    box-shadow:
+        0 24px 64px rgba(15, 23, 42, 0.12),
+        0 8px 24px rgba(15, 23, 42, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.52) !important;
+}
+.theme-dark .composer-card {
+    box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.38),
+        0 8px 24px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+.engine-select {
+    height: 26px !important;
+    padding: 0 10px !important;
+    border-radius: 999px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    transition:
+        border-color var(--ds-fast) var(--ds-material) !important;
+}
+
+.kind-toggle {
+    padding: 2px !important;
+    border-radius: 999px !important;
+}
+.kind-toggle button {
+    height: 21px !important;
+    padding: 0 9px !important;
+    border-radius: 999px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    gap: 4px !important;
+    transition:
+        background var(--ds-fast) var(--ds-material),
+        color var(--ds-fast) var(--ds-material) !important;
+}
+
+.prompt-input {
+    border-radius: 12px !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    line-height: 1.6 !important;
+    padding: 10px 42px 10px 12px !important;
+    transition:
+        border-color var(--ds-fast) var(--ds-material),
+        box-shadow var(--ds-fast) var(--ds-spring) !important;
+}
+.prompt-input:empty::before {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+}
+.prompt-input:focus {
+    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06) !important;
+}
+.theme-dark .prompt-input:focus {
+    box-shadow: 0 0 0 3px rgba(216, 222, 233, 0.08) !important;
+}
+
+.composer-template-btn {
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 8px !important;
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring),
+        border-color var(--ds-fast) var(--ds-material),
+        background var(--ds-fast) var(--ds-material) !important;
+}
+.composer-template-btn:hover {
+    transform: translateY(-1px) !important;
+}
+
+.run-btn {
+    height: 38px !important;
+    padding: 0 18px !important;
+    border-radius: 12px !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    gap: 6px !important;
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring),
+        filter var(--ds-fast) var(--ds-material) !important;
+}
+.run-btn:hover:not(:disabled) {
+    transform: translateY(-2px) !important;
+    filter: brightness(1.07) !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18) !important;
+}
+.run-btn:active:not(:disabled) {
+    transform: scale(0.97) !important;
+    filter: brightness(0.95) !important;
+    transition-duration: 60ms !important;
+}
+.run-btn i, .run-btn svg {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+.node-title {
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.03em !important;
+}
+
+.node-port {
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        opacity var(--ds-fast) var(--ds-material) !important;
+}
+.node-port:hover {
+    transform: scale(1.45) !important;
+}
+
+.smart-pill {
+    border-radius: 999px !important;
+    font-size: 10.5px !important;
+    font-weight: 600 !important;
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring),
+        background var(--ds-fast) var(--ds-material) !important;
+}
+.smart-pill:hover {
+    transform: translateY(-1px) !important;
+}
+
+.floating-node-actions {
+    border-radius: 999px !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+    backdrop-filter: blur(16px) saturate(1.4) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
+}
+
+.selection-hub {
+    border-radius: 999px !important;
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+    backdrop-filter: blur(20px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
+}
+
+.smart-minimap {
+    border-radius: 12px !important;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: blur(16px) saturate(1.4) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
+    overflow: hidden !important;
+}
+
+.create-menu {
+    border-radius: 16px !important;
+    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12),
+                0 4px 16px rgba(15, 23, 42, 0.06),
+                inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
+    backdrop-filter: blur(24px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
+    padding: 6px !important;
+}
+.theme-dark .create-menu {
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+.create-card {
+    border-radius: 10px !important;
+    transition:
+        background var(--ds-fast) var(--ds-material),
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring) !important;
+}
+.create-card:hover {
+    transform: translateY(-1px) !important;
+}
+.create-card-icon {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 9px !important;
+}
+.create-card-title {
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+}
+.create-card-sub {
+    font-size: 10px !important;
+    font-weight: 400 !important;
+    line-height: 1.5 !important;
+}
+
+.smart-log-panel,
+.shortcut-panel,
+.workflow-panel,
+.asset-panel {
+    border-radius: 16px !important;
+    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: blur(24px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
+}
+.theme-dark .smart-log-panel,
+.theme-dark .shortcut-panel,
+.theme-dark .workflow-panel {
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+.smart-log-head {
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.005em !important;
+}
+
+.prompt-node-text {
+    font-size: 11.5px !important;
+    font-weight: 400 !important;
+    line-height: 1.55 !important;
+    border-radius: 10px !important;
+    transition:
+        border-color var(--ds-fast) var(--ds-material),
+        box-shadow var(--ds-fast) var(--ds-spring) !important;
+}
+.prompt-node-text:focus {
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.06) !important;
+}
+
+.mention-picker {
+    border-radius: 12px !important;
+    backdrop-filter: blur(20px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
+    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12) !important;
+}
+.mention-option {
+    border-radius: 8px !important;
+    transition:
+        background var(--ds-fast) var(--ds-material),
+        transform var(--ds-fast) var(--ds-spring) !important;
+}
+.mention-option:hover {
+    transform: translateY(-1px) !important;
+}
+.mention-option span {
+    font-size: 9px !important;
+    font-weight: 600 !important;
+}
+
+.input-thumb {
+    border-radius: 8px !important;
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        box-shadow var(--ds-fast) var(--ds-spring),
+        border-color var(--ds-fast) var(--ds-material) !important;
+}
+.input-thumb:hover {
+    transform: translateY(-2px) scale(1.03) !important;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12) !important;
+}
+.input-thumb-add {
+    border-radius: 8px !important;
+    transition:
+        transform var(--ds-fast) var(--ds-spring),
+        background var(--ds-fast) var(--ds-material),
+        border-color var(--ds-fast) var(--ds-material) !important;
+}
+.input-thumb-add:hover {
+    transform: translateY(-1px) !important;
+}
+
+.preview-modal,
+.image-edit-modal {
+    border-radius: 16px !important;
+    box-shadow: 0 28px 80px rgba(15, 23, 42, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+}
+
+.prompt-template-panel {
+    border-radius: 16px !important;
+    box-shadow: 0 20px 56px rgba(15, 23, 42, 0.12),
+                inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+    backdrop-filter: blur(24px) saturate(1.6) !important;
+    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
+}
+.prompt-template-head strong {
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.01em !important;
+}
+.prompt-template-head span {
+    font-size: 10.5px !important;
+    font-weight: 400 !important;
+}
+.prompt-template-tabs button {
+    height: 28px !important;
+    padding: 0 9px !important;
+    border-radius: 9px !important;
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    transition:
+        background var(--ds-fast) var(--ds-material),
+        color var(--ds-fast) var(--ds-material),
+        border-color var(--ds-fast) var(--ds-material) !important;
+}
+
+.select-box,
+#selectBox {
+    border-radius: 3px !important;
+}

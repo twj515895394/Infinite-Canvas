@@ -157,13 +157,19 @@ def _probe_executable(profile: Dict[str, Any]) -> Dict[str, Any]:
                 "error": {"code": "AGENT_RUNTIME_CONFIG_INVALID", "title": "未配置可执行文件", "detail": "请填写 executable_path"},
             }
         exe = found
-    if not shutil.which(exe) and not __import__("os").path.isfile(exe):
+
+    # 在 Windows 环境下，npm/nvm/pip 安装的 CLI（如 pi, codex, claude）通常是 pi.CMD / pi.bat 包装脚本。
+    # 必须先通过 shutil.which(exe) 解析出完整的可执行路径（如 C:\nvm4w\nodejs\pi.CMD），
+    # 否则在 Windows asyncio.create_subprocess_exec("pi", ...) 下会导致 [WinError 2] 系统找不到指定的文件。
+    resolved = shutil.which(exe) if not (os.path.isabs(exe) and os.path.isfile(exe)) else exe
+    if not resolved and not os.path.isfile(exe):
         return {
             "ok": False,
             "status": "unavailable",
             "error": {"code": "AGENT_RUNTIME_UNAVAILABLE", "title": "可执行文件不存在", "detail": f"{exe} 未找到"},
         }
 
+    target_exe = resolved or exe
     args = _ADAPTER_PROBE_ARGS.get(profile["adapter_type"], [])
     version = None
     import asyncio
@@ -171,10 +177,21 @@ def _probe_executable(profile: Dict[str, Any]) -> Dict[str, Any]:
     async def _run() -> str:
         if not args:
             return ""
-        proc = await asyncio.create_subprocess_exec(
-            exe, *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+        # 优先直接调起解析后的可执行程序；若在 Windows 环境下抛出 OSError（如 WinError 2），退避使用 cmd.exe (shell=True) 调起
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                target_exe, *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+        except OSError:
+            if os.name == "nt":
+                cmd_str = f'"{target_exe}" ' + " ".join(args)
+                proc = await asyncio.create_subprocess_shell(
+                    cmd_str, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=10)
+            else:
+                raise
         return (stdout or stderr or b"").decode("utf-8", errors="replace").strip()
 
     try:

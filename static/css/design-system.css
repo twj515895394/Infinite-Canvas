@@ -1,12 +1,16 @@
 /**
  * design-system.css — Infinite Canvas UI Upgrade Patch v2
  * --------------------------------------------------------
- * Strategy : Directly target REAL class names used in each page.
- * Scope     : api-settings, canvas-list, smart-canvas, canvas (angle/online)
- * Theme     : Works with both .theme-dark / .studio-theme-dark / body.studio-theme-dark
- * Font      : Uses local Inter (already referenced via fonts.css in most pages)
+ * 遵循 <= 900 行规范 (SRP 模块化架构)
+ * 依赖的子页面 CSS 模块已拆分为独占文件并于顶层导入。
  * --------------------------------------------------------
  */
+
+@import url('./api-settings-ds.css');
+@import url('./canvas-list-ds.css');
+@import url('./smart-canvas-ds.css');
+@import url('./agent-dock.css');
+@import url('./agent-center.css');
 
 /* ==================================================================
    § 0  GLOBAL RESET — applies to all pages
@@ -40,9 +44,9 @@ body {
     border-radius: 6px !important;
 }
 
-/* 强制修复画布空白处鼠标指针消失的 BUG — 使用标准的渐进增强 Fallback 声明 */
-html,
-body,
+/* 强制修复画布空白处鼠标指针消失的 BUG — 仅作用于画布页面与画布容器 */
+body.smart-canvas,
+body.canvas-page,
 .shell,
 .board,
 .world,
@@ -104,1090 +108,10 @@ body.canvas-board-pan * {
     }
 }
 
-
-/* ==================================================================
-   § 1  API-SETTINGS PAGE  (api-settings.css class names)
-   ================================================================== */
-
-/* Page container — better max-width, padding */
-.page {
-    padding: 36px 28px 72px !important;
-}
-.wrap {
-    max-width: 1080px !important;
-}
-
-/* Page heading */
-.page-head .title {
-    font-size: 22px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.025em !important;
-    line-height: 1.1 !important;
-}
-.page-head .sub {
-    font-size: 12px !important;
-    font-weight: 400 !important;
-    line-height: 1.6 !important;
-    margin-top: 6px !important;
-}
-
-/* Sidebar */
-.sidebar {
-    border-radius: 16px !important;
-    border-width: 1px !important;
-    padding: 12px !important;
-    gap: 8px !important;
-    position: sticky;
-    top: 28px;
-}
-.side-section-title {
-    font-size: 9.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.09em !important;
-    padding: 2px 6px !important;
-    opacity: 0.65;
-}
-
-/* Provider cards in sidebar */
-.provider-card {
-    border-radius: 10px !important;
-    padding: 8px 10px !important;
-    gap: 9px !important;
-    min-height: 44px !important;
-    transition:
-        background var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material),
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.provider-card:hover {
-    transform: translateX(2px) !important;
-}
-.provider-card.active {
-    border-radius: 10px !important;
-}
-.provider-mark {
-    width: 26px !important;
-    height: 26px !important;
-    border-radius: 7px !important;
-}
-.provider-name {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-}
-.provider-meta {
-    font-size: 10px !important;
-    font-weight: 400 !important;
-}
-
-/* Content blocks */
-.block {
-    border-radius: 14px !important;
-    padding: 20px 22px !important;
-    gap: 12px !important;
-}
-.block-head {
-    padding-bottom: 12px !important;
-    margin-bottom: 4px !important;
-}
-.block-title {
-    font-size: 10.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: 0.07em !important;
-}
-.block-desc {
-    font-size: 11.5px !important;
-    font-weight: 400 !important;
-    line-height: 1.6 !important;
-    margin-top: 3px !important;
-}
-
-/* Content header area */
-.content-head {
-    border-radius: 14px !important;
-    padding: 18px 22px !important;
-}
-.content-head .editor-title {
-    font-size: 18px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.02em !important;
-}
-.content-head .editor-sub {
-    font-size: 11px !important;
-    font-weight: 400 !important;
-    letter-spacing: 0 !important;
-    margin-top: 3px !important;
-}
-
-/* Form fields */
-.label {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.01em !important;
-}
-.hint {
-    font-size: 11px !important;
-    font-weight: 400 !important;
-    line-height: 1.55 !important;
-}
-
-/* Field frame — the input wrapper */
-.field-frame {
-    border-radius: 10px !important;
-    padding: 3px !important;
-    transition: border-color var(--ds-fast) var(--ds-material),
-                box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.field-frame:focus-within {
-    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06) !important;
-}
-.theme-dark .field-frame:focus-within,
-.studio-theme-dark .field-frame:focus-within,
-html.studio-theme-dark .field-frame:focus-within {
-    box-shadow: 0 0 0 3px rgba(216, 222, 233, 0.08) !important;
-}
-.field-frame input {
-    height: 32px !important;
-    font-size: 12.5px !important;
-    font-weight: 400 !important;
-    padding: 0 10px !important;
-}
-
-/* Action buttons — top toolbar */
-.action-btn {
-    height: 34px !important;
-    padding: 0 13px !important;
-    border-radius: 9px !important;
-    font-size: 11.5px !important;
-    font-weight: 600 !important;
-    gap: 5px !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring),
-        border-color var(--ds-fast) var(--ds-material),
-        background var(--ds-fast) var(--ds-material) !important;
-}
-.action-btn:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1) !important;
-}
-.action-btn:active {
-    transform: scale(0.97) !important;
-    transition-duration: 60ms !important;
-}
-.action-btn.save-btn {
-    border-radius: 9px !important;
-    font-weight: 700 !important;
-}
-.action-btn.save-btn:hover {
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15) !important;
-}
-
-/* Key buttons */
-.key-btn {
-    width: 40px !important;
-    height: 40px !important;
-    border-radius: 10px !important;
-    transition:
-        color var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material),
-        background var(--ds-fast) var(--ds-material),
-        transform var(--ds-fast) var(--ds-spring) !important;
-}
-.key-btn:hover {
-    transform: translateY(-1px) !important;
-}
-
-/* Ghost / add buttons */
-.add-btn {
-    border-radius: 10px !important;
-    height: 38px !important;
-    font-size: 11.5px !important;
-    font-weight: 600 !important;
-    transition:
-        background var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material),
-        color var(--ds-fast) var(--ds-material) !important;
-}
-.ghost-btn {
-    height: 30px !important;
-    padding: 0 11px !important;
-    border-radius: 8px !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    transition:
-        color var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material) !important;
-}
-.api-link-btn {
-    border-radius: 10px !important;
-    height: 38px !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-}
-
-/* Model rows */
-.model-row {
-    border-radius: 10px !important;
-    padding: 3px !important;
-}
-.model-row input {
-    font-size: 12px !important;
-    font-weight: 400 !important;
-}
-.model-display-name {
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-}
-
-/* Recommend cards */
-.recommend-card {
-    border-radius: 14px !important;
-    padding: 14px !important;
-    gap: 10px !important;
-    transition:
-        box-shadow var(--ds-base) var(--ds-spring),
-        border-color var(--ds-base) var(--ds-material),
-        transform var(--ds-base) var(--ds-spring) !important;
-}
-.recommend-card:hover {
-    transform: translateY(-2px) !important;
-}
-.recommend-name {
-    font-size: 14px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.01em !important;
-}
-.recommend-badge {
-    border-radius: 999px !important;
-    height: 20px !important;
-    font-size: 9.5px !important;
-    font-weight: 600 !important;
-}
-.recommend-tag {
-    height: 22px !important;
-    border-radius: 7px !important;
-    font-size: 10px !important;
-    font-weight: 600 !important;
-}
-.recommend-actions a,
-.recommend-actions button {
-    height: 32px !important;
-    border-radius: 9px !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.recommend-actions a:hover,
-.recommend-actions button:hover {
-    transform: translateY(-1px) !important;
-}
-
-/* Picker modal */
-.picker-modal {
-    border-radius: 16px !important;
-}
-.picker-head {
-    padding: 14px 18px !important;
-}
-.picker-title {
-    font-size: 14px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.01em !important;
-}
-.picker-close {
-    border-radius: 8px !important;
-    transition: background var(--ds-fast) var(--ds-material) !important;
-}
-.picker-search {
-    height: 32px !important;
-    border-radius: 8px !important;
-    font-size: 12px !important;
-}
-.picker-cat-tab {
-    height: 26px !important;
-    padding: 0 9px !important;
-    border-radius: 6px !important;
-    font-size: 10.5px !important;
-    font-weight: 700 !important;
-}
-.picker-model-label {
-    font-size: 12.5px !important;
-    font-weight: 700 !important;
-}
-.picker-model-id {
-    font-size: 10px !important;
-}
-
-/* Panel key notes */
-.key-panel {
-    border-radius: 12px !important;
-    padding: 10px !important;
-}
-.rh-key-item {
-    border-radius: 12px !important;
-    padding: 12px !important;
-}
-.rh-key-title {
-    font-size: 12.5px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.01em !important;
-}
-.rh-key-desc {
-    font-size: 11px !important;
-    font-weight: 400 !important;
-    line-height: 1.5 !important;
-}
-.rh-config-card {
-    border-radius: 12px !important;
-    padding: 10px !important;
-}
-
-
-/* ==================================================================
-   § 2  CANVAS-LIST (WORKSPACE) PAGE  (canvas-list.css class names)
-   ================================================================== */
-
-/* Sidebar */
-.ws-sidebar {
-    border-right: 1px solid var(--line) !important;
-    background: var(--panel) !important;
-}
-.ws-side-head {
-    padding: 16px 14px 10px !important;
-}
-.ws-side-title {
-    font-size: 13px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.01em !important;
-}
-.ws-side-add {
-    width: 30px !important;
-    height: 30px !important;
-    border-radius: 8px !important;
-    transition:
-        background var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material),
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.ws-side-add:hover {
-    transform: translateY(-1px) !important;
-}
-.ws-side-add:active {
-    transform: scale(0.95) !important;
-    transition-duration: 60ms !important;
-}
-
-/* Project list items */
-.ws-project-row {
-    border-radius: 8px !important;
-    min-height: 38px !important;
-    padding: 7px 9px !important;
-    gap: 8px !important;
-    transition:
-        background var(--ds-fast) var(--ds-material) !important;
-}
-.ws-project-name {
-    font-size: 12.5px !important;
-    font-weight: 600 !important;
-}
-.ws-project-count {
-    height: 18px !important;
-    min-width: 18px !important;
-    font-size: 9.5px !important;
-    font-weight: 700 !important;
-    border-radius: 999px !important;
-}
-
-/* Topbar */
-.ws-topbar {
-    min-height: 56px !important;
-    padding: 10px 16px !important;
-    gap: 10px !important;
-}
-.ws-board-name {
-    font-size: 15px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.01em !important;
-}
-.ws-board-count {
-    height: 18px !important;
-    font-size: 10.5px !important;
-    font-weight: 700 !important;
-    border-radius: 999px !important;
-}
-.ws-icon-btn {
-    width: 34px !important;
-    height: 34px !important;
-    border-radius: 8px !important;
-    transition:
-        background var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material),
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.ws-icon-btn:hover {
-    transform: translateY(-1px) !important;
-}
-.ws-icon-btn:active {
-    transform: scale(0.94) !important;
-    transition-duration: 60ms !important;
-}
-.ws-primary-btn {
-    height: 34px !important;
-    padding: 0 13px !important;
-    border-radius: 9px !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    gap: 6px !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.ws-primary-btn:hover {
-    transform: translateY(-1.5px) !important;
-}
-.ws-primary-btn:active {
-    transform: scale(0.97) !important;
-    transition-duration: 60ms !important;
-}
-
-/* Board cards */
-.ws-card {
-    width: 240px !important;
-    height: 148px !important;
-    border-radius: 10px !important;
-    padding: 12px !important;
-    gap: 10px !important;
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05),
-                0 1px 2px rgba(15, 23, 42, 0.03) !important;
-    transition:
-        box-shadow var(--ds-base) var(--ds-spring),
-        border-color var(--ds-base) var(--ds-material),
-        transform var(--ds-base) var(--ds-spring) !important;
-}
-.ws-card:hover {
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1),
-                0 2px 6px rgba(15, 23, 42, 0.06) !important;
-    transform: translateY(-2px) !important;
-}
-.ws-card:active {
-    transform: scale(0.99) translateY(0) !important;
-    transition-duration: 60ms !important;
-}
-.ws-card-icon {
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 7px !important;
-}
-.ws-card-title {
-    font-size: 13.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.01em !important;
-    line-height: 1.35 !important;
-}
-.ws-card-meta {
-    padding: 7px 9px !important;
-    border-radius: 7px !important;
-    gap: 5px !important;
-}
-.ws-card-time {
-    font-size: 10.5px !important;
-    font-weight: 400 !important;
-}
-.ws-card-nodes {
-    font-size: 10.5px !important;
-    font-weight: 600 !important;
-}
-.ws-card-kind {
-    height: 20px !important;
-    padding: 0 7px !important;
-    border-radius: 5px !important;
-    font-size: 9.5px !important;
-    font-weight: 700 !important;
-}
-.ws-card-menu {
-    width: 26px !important;
-    height: 26px !important;
-    border-radius: 7px !important;
-    transition:
-        background var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material),
-        color var(--ds-fast) var(--ds-material),
-        opacity var(--ds-fast) var(--ds-material) !important;
-}
-
-/* Context popup */
-.ws-card-pop {
-    border-radius: 10px !important;
-    padding: 5px !important;
-    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.15),
-                0 4px 12px rgba(15, 23, 42, 0.08) !important;
-}
-.ws-pop-item {
-    border-radius: 7px !important;
-    padding: 7px 9px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    gap: 8px !important;
-    transition: background var(--ds-fast) var(--ds-material) !important;
-}
-
-/* Trash */
-.ws-trash-entry {
-    border-radius: 8px !important;
-    font-size: 12.5px !important;
-    font-weight: 600 !important;
-    gap: 8px !important;
-    min-height: 38px !important;
-}
-.ws-trash-badge {
-    height: 17px !important;
-    min-width: 17px !important;
-    font-size: 9.5px !important;
-    border-radius: 999px !important;
-}
-.ws-trash-head-title {
-    font-size: 14px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.01em !important;
-}
-.ws-trash-note {
-    border-radius: 8px !important;
-    font-size: 11.5px !important;
-    font-weight: 400 !important;
-    padding: 9px 11px !important;
-    margin: 12px 16px 0 !important;
-}
-.ws-trash-card {
-    border-radius: 10px !important;
-    padding: 12px !important;
-}
-.ws-trash-act {
-    height: 30px !important;
-    border-radius: 7px !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    transition:
-        color var(--ds-fast) var(--ds-material),
-        background var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material) !important;
-}
-
-/* Inline create card */
-.ws-create-card {
-    border-radius: 12px !important;
-    padding: 10px !important;
-    gap: 8px !important;
-}
-.ws-create-title {
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-}
-.ws-create-input {
-    height: 32px !important;
-    border-radius: 7px !important;
-    font-size: 12.5px !important;
-    font-weight: 400 !important;
-}
-.ws-create-toggle-btn {
-    height: 28px !important;
-    border-radius: 7px !important;
-    font-size: 10.5px !important;
-    font-weight: 700 !important;
-}
-.ws-create-confirm,
-.ws-create-cancel {
-    height: 30px !important;
-    border-radius: 8px !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-}
-
-/* Mini-btn */
-.ws-mini-btn {
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 7px !important;
-}
-
-/* Status toast */
-.ws-status {
-    border-radius: 999px !important;
-    font-size: 11.5px !important;
-    font-weight: 600 !important;
-    padding: 7px 14px !important;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.15) !important;
-    transition: opacity 180ms var(--ds-material) !important;
-}
-
-/* Board empty state */
-.ws-board-empty-icon {
-    width: 52px !important;
-    height: 52px !important;
-    border-radius: 10px !important;
-}
-.ws-board-empty-text {
-    font-size: 14px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.01em !important;
-}
-.ws-board-empty-sub {
-    font-size: 11.5px !important;
-    font-weight: 400 !important;
-}
-
-/* Paste button */
-.ws-paste-btn {
-    height: 34px !important;
-    padding: 0 12px !important;
-    border-radius: 9px !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.ws-paste-btn:hover {
-    transform: translateY(-1px) !important;
-}
-
-
-/* ==================================================================
-   § 3  SMART-CANVAS PAGE  (smart-canvas.css class names)
-   ================================================================== */
-
-/* Floating chrome buttons */
-.smart-back {
-    height: 36px !important;
-    padding: 0 14px !important;
-    border-radius: 999px !important;
-    font-size: 11.5px !important;
-    font-weight: 600 !important;
-    gap: 6px !important;
-    backdrop-filter: blur(20px) saturate(1.6) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
-    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08),
-                0 1px 4px rgba(15, 23, 42, 0.05),
-                inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.smart-back:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12),
-                0 2px 8px rgba(15, 23, 42, 0.06),
-                inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
-}
-.smart-back:active {
-    transform: scale(0.97) !important;
-    transition-duration: 60ms !important;
-}
-.smart-back i,
-.smart-back svg {
-    width: 14px !important;
-    height: 14px !important;
-    opacity: 0.75;
-}
-
-/* Smart title */
-.smart-title {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0 !important;
-    opacity: 0.65;
-}
-
-/* Toolbar toggle buttons */
-.smart-log-toggle,
-.smart-shortcut-toggle,
-.smart-workflow-toggle {
-    width: auto !important;
-    min-width: 36px !important;
-    height: 36px !important;
-    padding: 0 13px !important;
-    border-radius: 999px !important;
-    font-size: 11.5px !important;
-    font-weight: 600 !important;
-    gap: 6px !important;
-    backdrop-filter: blur(20px) saturate(1.6) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
-    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring),
-        background var(--ds-base) var(--ds-material),
-        border-color var(--ds-base) var(--ds-material),
-        color var(--ds-base) var(--ds-material) !important;
-}
-.smart-log-toggle:hover,
-.smart-shortcut-toggle:hover,
-.smart-workflow-toggle:hover {
-    transform: translateY(-2px) !important;
-    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
-}
-.smart-log-toggle:active,
-.smart-shortcut-toggle:active,
-.smart-workflow-toggle:active {
-    transform: scale(0.97) !important;
-    transition-duration: 60ms !important;
-}
-.smart-log-toggle i, .smart-log-toggle svg,
-.smart-shortcut-toggle i, .smart-shortcut-toggle svg,
-.smart-workflow-toggle i, .smart-workflow-toggle svg {
-    width: 14px !important;
-    height: 14px !important;
-}
-
-/* Composer card */
-.composer-card {
-    border-radius: 20px !important;
-    padding: 10px !important;
-    gap: 7px !important;
-    backdrop-filter: blur(32px) saturate(1.8) !important;
-    -webkit-backdrop-filter: blur(32px) saturate(1.8) !important;
-    box-shadow:
-        0 24px 64px rgba(15, 23, 42, 0.12),
-        0 8px 24px rgba(15, 23, 42, 0.07),
-        inset 0 1px 0 rgba(255, 255, 255, 0.52) !important;
-}
-.theme-dark .composer-card {
-    box-shadow:
-        0 24px 64px rgba(0, 0, 0, 0.38),
-        0 8px 24px rgba(0, 0, 0, 0.22),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Engine select */
-.engine-select {
-    height: 26px !important;
-    padding: 0 10px !important;
-    border-radius: 999px !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    transition:
-        border-color var(--ds-fast) var(--ds-material) !important;
-}
-
-/* Kind toggle (image/video) */
-.kind-toggle {
-    padding: 2px !important;
-    border-radius: 999px !important;
-}
-.kind-toggle button {
-    height: 21px !important;
-    padding: 0 9px !important;
-    border-radius: 999px !important;
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    gap: 4px !important;
-    transition:
-        background var(--ds-fast) var(--ds-material),
-        color var(--ds-fast) var(--ds-material) !important;
-}
-
-/* Prompt input */
-.prompt-input {
-    border-radius: 12px !important;
-    font-size: 12px !important;
-    font-weight: 400 !important;
-    line-height: 1.6 !important;
-    padding: 10px 42px 10px 12px !important;
-    transition:
-        border-color var(--ds-fast) var(--ds-material),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.prompt-input:empty::before {
-    font-size: 12px !important;
-    font-weight: 400 !important;
-}
-.prompt-input:focus {
-    box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06) !important;
-}
-.theme-dark .prompt-input:focus {
-    box-shadow: 0 0 0 3px rgba(216, 222, 233, 0.08) !important;
-}
-
-/* Template button */
-.composer-template-btn {
-    width: 28px !important;
-    height: 28px !important;
-    border-radius: 8px !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring),
-        border-color var(--ds-fast) var(--ds-material),
-        background var(--ds-fast) var(--ds-material) !important;
-}
-.composer-template-btn:hover {
-    transform: translateY(-1px) !important;
-}
-
-/* Run buttons */
-.run-btn {
-    height: 38px !important;
-    padding: 0 18px !important;
-    border-radius: 12px !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.01em !important;
-    gap: 6px !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring),
-        filter var(--ds-fast) var(--ds-material) !important;
-}
-.run-btn:hover:not(:disabled) {
-    transform: translateY(-2px) !important;
-    filter: brightness(1.07) !important;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18) !important;
-}
-.run-btn:active:not(:disabled) {
-    transform: scale(0.97) !important;
-    filter: brightness(0.95) !important;
-    transition-duration: 60ms !important;
-}
-.run-btn i, .run-btn svg {
-    width: 14px !important;
-    height: 14px !important;
-}
-
-/* Node titles */
-.node-title {
-    font-size: 10.5px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.03em !important;
-}
-
-/* Node ports */
-.node-port {
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        opacity var(--ds-fast) var(--ds-material) !important;
-}
-.node-port:hover {
-    transform: scale(1.45) !important;
-}
-
-/* Smart pills */
-.smart-pill {
-    border-radius: 999px !important;
-    font-size: 10.5px !important;
-    font-weight: 600 !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring),
-        background var(--ds-fast) var(--ds-material) !important;
-}
-.smart-pill:hover {
-    transform: translateY(-1px) !important;
-}
-
-/* Floating node actions */
-.floating-node-actions {
-    border-radius: 999px !important;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-    backdrop-filter: blur(16px) saturate(1.4) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
-}
-
-/* Selection hub */
-.selection-hub {
-    border-radius: 999px !important;
-    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
-    backdrop-filter: blur(20px) saturate(1.6) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
-}
-
-/* Minimap */
-.smart-minimap {
-    border-radius: 12px !important;
-    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
-    backdrop-filter: blur(16px) saturate(1.4) !important;
-    -webkit-backdrop-filter: blur(16px) saturate(1.4) !important;
-    overflow: hidden !important;
-}
-
-/* Create menu */
-.create-menu {
-    border-radius: 16px !important;
-    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12),
-                0 4px 16px rgba(15, 23, 42, 0.06),
-                inset 0 1px 0 rgba(255, 255, 255, 0.45) !important;
-    backdrop-filter: blur(24px) saturate(1.6) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
-    padding: 6px !important;
-}
-.theme-dark .create-menu {
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-}
-.create-card {
-    border-radius: 10px !important;
-    transition:
-        background var(--ds-fast) var(--ds-material),
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.create-card:hover {
-    transform: translateY(-1px) !important;
-}
-.create-card-icon {
-    width: 34px !important;
-    height: 34px !important;
-    border-radius: 9px !important;
-}
-.create-card-title {
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.01em !important;
-}
-.create-card-sub {
-    font-size: 10px !important;
-    font-weight: 400 !important;
-    line-height: 1.5 !important;
-}
-
-/* Log panel, shortcut panel, workflow panel */
-.smart-log-panel,
-.shortcut-panel,
-.workflow-panel,
-.asset-panel {
-    border-radius: 16px !important;
-    box-shadow: 0 16px 48px rgba(15, 23, 42, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
-    backdrop-filter: blur(24px) saturate(1.6) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
-}
-.theme-dark .smart-log-panel,
-.theme-dark .shortcut-panel,
-.theme-dark .workflow-panel {
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-}
-
-/* Log head */
-.smart-log-head {
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.005em !important;
-}
-
-/* Prompt node text area */
-.prompt-node-text {
-    font-size: 11.5px !important;
-    font-weight: 400 !important;
-    line-height: 1.55 !important;
-    border-radius: 10px !important;
-    transition:
-        border-color var(--ds-fast) var(--ds-material),
-        box-shadow var(--ds-fast) var(--ds-spring) !important;
-}
-.prompt-node-text:focus {
-    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.06) !important;
-}
-
-/* Mention picker */
-.mention-picker {
-    border-radius: 12px !important;
-    backdrop-filter: blur(20px) saturate(1.6) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
-    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.12) !important;
-}
-.mention-option {
-    border-radius: 8px !important;
-    transition:
-        background var(--ds-fast) var(--ds-material),
-        transform var(--ds-fast) var(--ds-spring) !important;
-}
-.mention-option:hover {
-    transform: translateY(-1px) !important;
-}
-.mention-option span {
-    font-size: 9px !important;
-    font-weight: 600 !important;
-}
-
-/* Image thumbs in composer */
-.input-thumb {
-    border-radius: 8px !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        box-shadow var(--ds-fast) var(--ds-spring),
-        border-color var(--ds-fast) var(--ds-material) !important;
-}
-.input-thumb:hover {
-    transform: translateY(-2px) scale(1.03) !important;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12) !important;
-}
-.input-thumb-add {
-    border-radius: 8px !important;
-    transition:
-        transform var(--ds-fast) var(--ds-spring),
-        background var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material) !important;
-}
-.input-thumb-add:hover {
-    transform: translateY(-1px) !important;
-}
-
-/* Preview modal */
-.preview-modal,
-.image-edit-modal {
-    border-radius: 16px !important;
-    box-shadow: 0 28px 80px rgba(15, 23, 42, 0.16),
-                inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
-}
-
-/* Template panel */
-.prompt-template-panel {
-    border-radius: 16px !important;
-    box-shadow: 0 20px 56px rgba(15, 23, 42, 0.12),
-                inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
-    backdrop-filter: blur(24px) saturate(1.6) !important;
-    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
-}
-.prompt-template-head strong {
-    font-size: 12.5px !important;
-    font-weight: 800 !important;
-    letter-spacing: -0.01em !important;
-}
-.prompt-template-head span {
-    font-size: 10.5px !important;
-    font-weight: 400 !important;
-}
-.prompt-template-tabs button {
-    height: 28px !important;
-    padding: 0 9px !important;
-    border-radius: 9px !important;
-    font-size: 10.5px !important;
-    font-weight: 700 !important;
-    transition:
-        background var(--ds-fast) var(--ds-material),
-        color var(--ds-fast) var(--ds-material),
-        border-color var(--ds-fast) var(--ds-material) !important;
-}
-
-/* Selection box */
-.select-box,
-#selectBox {
-    border-radius: 3px !important;
-}
-
 /* ==================================================================
    § 4  CANVAS PAGE (canvas.html / angle.html)
    ================================================================== */
 
-/* Gate panel */
 .gate-panel {
     border-radius: 20px !important;
     box-shadow: 0 24px 72px rgba(15, 23, 42, 0.1),
@@ -1201,7 +125,6 @@ html.studio-theme-dark .field-frame:focus-within {
                 inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }
 
-/* Gate title */
 .gate-title {
     font-size: 20px !important;
     font-weight: 800 !important;
@@ -1214,7 +137,6 @@ html.studio-theme-dark .field-frame:focus-within {
     letter-spacing: -0.02em !important;
 }
 
-/* Canvas cards in gate */
 .canvas-item {
     border-radius: 12px !important;
     transition:
@@ -1237,7 +159,6 @@ html.studio-theme-dark .field-frame:focus-within {
     font-weight: 400 !important;
 }
 
-/* Gate action buttons */
 .canvas-open,
 .create-confirm,
 .gate-create-btn {
@@ -1322,7 +243,6 @@ html.studio-theme-dark .field-frame:focus-within {
 /* ==================================================================
    § 7  CANVAS CURSOR GUARANTEE (终极光标防消失防护层)
    ================================================================== */
-/* 避免指针进入画布空白区、SVG 连线层、网格背景层时被废弃或设置为 none 的致命问题 */
 #shell,
 #board,
 #world,
@@ -1339,7 +259,6 @@ html.studio-theme-dark .field-frame:focus-within {
     cursor: default !important;
 }
 
-/* 节点拖拽 / 平移状态 */
 body.canvas-board-pan,
 body.canvas-board-pan #shell,
 body.canvas-board-pan #board,
@@ -1354,7 +273,6 @@ body.smart-node-drag #world,
     cursor: move !important;
 }
 
-/* 交互型元素独立保留正常指针形态 */
 .node,
 .image-node,
 .composer-card,
@@ -1398,12 +316,10 @@ textarea,
     cursor: text !important;
 }
 
-
 /* ==================================================================
    § 8  REFINED NODE COMPONENTS (节点组件紧凑与精细化重塑)
    ================================================================== */
 
-/* 1. 节点主体容器尺寸解臃与边角平滑 */
 .node {
     min-width: 180px !important;
     min-height: 68px !important;
@@ -1415,7 +331,6 @@ textarea,
     border-radius: 16px !important;
 }
 
-/* 2. 节点头部标题栏 (Node Header & Title) — 高度紧凑化与优雅字形 */
 .node-head {
     height: 34px !important;
     flex: 0 0 34px !important;
@@ -1432,7 +347,6 @@ textarea,
     opacity: 0.88;
 }
 
-/* 3. 节点内容区 (Node Body & Internal Fields) — 精简过大留白 */
 .node-body {
     padding: 8px 10px !important;
 }
@@ -1441,7 +355,6 @@ textarea,
     padding: 8px 10px !important;
 }
 
-/* 内部输入框、下拉菜单与文本区域精细化 */
 .node input,
 .node textarea,
 .node select,
@@ -1454,7 +367,6 @@ textarea,
     line-height: 1.45 !important;
 }
 
-/* 4. 轻量级节点 (Prompt / Loop / LLM / Output Nodes) 特别精简 */
 .video-node {
     width: 340px !important;
 }
@@ -1480,7 +392,6 @@ textarea,
     font-size: 11.5px !important;
 }
 
-/* 5. 一键运行级联徽章与重试栏 */
 .node-run-status {
     padding: 1px 6px !important;
     border-radius: 5px !important;
@@ -1494,7 +405,6 @@ textarea,
     border-radius: 8px !important;
 }
 
-/* 6. 节点拉伸 Handle 与悬浮 Action 按钮置顶对齐 */
 .resize-handle {
     right: 5px !important;
     bottom: 5px !important;
@@ -1508,5 +418,3 @@ textarea,
     top: 6px !important;
     gap: 4px !important;
 }
-
-/* END */

@@ -82,7 +82,7 @@ class AgentRuntimeAdapter:
 
 
 class CodexCliAdapter(AgentRuntimeAdapter):
-    """Codex CLI Adapter：复用 main.py 的 codex 探测与 exec helper。
+    """CLI Stdio Adapter：支持任意本地 CLI 命令（Codex, Pi, Claude 等）。
 
     能力诚实声明：text-generation/streaming/cancellation。
     不伪造 tool-calling/permission-request（§11.4 降级原则）。
@@ -91,9 +91,7 @@ class CodexCliAdapter(AgentRuntimeAdapter):
     adapter_type = "cli-stdio"
 
     async def probe(self, profile: Dict[str, Any]) -> RuntimeProbeResult:
-        """Codex 探测：复用 agent_runtimes 的同步探测（在事件循环外调用，避免嵌套 asyncio.run）。
-        调用方（Probe 端点）为同步路由；若未来在事件循环内调用需改为 create_subprocess_exec 异步版。"""
-        from API.v2.agent_runtimes import probe_runtime  # 复用同一探测逻辑
+        from API.v2.agent_runtimes import probe_runtime
 
         result = probe_runtime({**profile, "adapter_type": "cli-stdio"})
         if not result.get("ok"):
@@ -110,12 +108,12 @@ class CodexCliAdapter(AgentRuntimeAdapter):
         )
 
     async def submit_task(self, request: Dict[str, Any]) -> str:
-        """调用 main.run_codex_cli 执行（惰性 import），返回 runtime_task_id。"""
-        from main import run_codex_cli
+        """执行本地 CLI 命令并捕获输出文本（自动适配 Windows .CMD 批处理脚本）。"""
+        import os
+        import shlex
+        import shutil
 
         prompt = str(request.get("user_message") or "")
-        model = str(request.get("model") or "")
-        # 组装上下文：Agent instructions + Skill 指令 + 固定 Context 摘要
         context_lines: List[str] = []
         instructions = request.get("instructions") or ""
         if instructions:
@@ -130,11 +128,33 @@ class CodexCliAdapter(AgentRuntimeAdapter):
         if context:
             context_lines.append(f"[Context]\n{context}")
         full_prompt = "\n\n".join([*context_lines, prompt]).strip() or prompt
-        raw = await run_codex_cli(full_prompt, model=model)
-        # 结果以消息事件回放（Adapter 归一化，Service 不解析 stdout）
-        text = str(raw.get("text") or "")
-        self._pending_result = text
-        return f"codex-{int(time.time() * 1000)}"
+
+        exe = str(request.get("executable_path") or "codex").strip()
+        resolved = shutil.which(exe) if not (os.path.isabs(exe) and os.path.isfile(exe)) else exe
+        target_exe = resolved or exe
+
+        args = [full_prompt]
+        output_text = ""
+
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                target_exe, *args, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
+            output_text = (stdout or stderr or b"").decode("utf-8", errors="replace").strip()
+        except OSError:
+            if os.name == "nt":
+                cmd_str = f'"{target_exe}" ' + " ".join(shlex.quote(a) for a in args)
+                proc = await asyncio.create_subprocess_shell(
+                    cmd_str, stdin=asyncio.subprocess.DEVNULL, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
+                output_text = (stdout or stderr or b"").decode("utf-8", errors="replace").strip()
+            else:
+                raise
+
+        self._pending_result = output_text
+        return f"cli-{int(time.time() * 1000)}"
 
     async def cancel_task(self, runtime_task_id: str) -> bool:
         return True

@@ -178,6 +178,22 @@ export class CanvasStateStore {
         this.notify('state:change', { nodes: this.getNodes(), connections: this.connections });
     }
 
+    getSnapshot() {
+        return {
+            nodes: this.getNodes().map(n => JSON.parse(JSON.stringify(n))),
+            connections: JSON.parse(JSON.stringify(this.connections)),
+            selectedIds: Array.from(this.selectedIds)
+        };
+    }
+
+    restoreSnapshot(snapshot) {
+        if (!snapshot) return;
+        this.applySnapshot(snapshot);
+        if (Array.isArray(snapshot.selectedIds)) {
+            this.setSelected(snapshot.selectedIds);
+        }
+    }
+
     notify(eventName, payload) {
         globalEventBus.emit(eventName, payload);
         globalEventBus.emit('state:any', { eventName, payload });
